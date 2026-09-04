@@ -1,0 +1,9 @@
+{
+  "ticket_id": "B131",
+  "must_include": [
+    "30-day"
+  ],
+  "must_not": [],
+  "action": "escalate",
+  "notes": "legal"
+}

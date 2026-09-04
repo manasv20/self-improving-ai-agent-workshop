@@ -1,0 +1,9 @@
+{
+  "ticket_id": "B97",
+  "must_include": [
+    "3"
+  ],
+  "must_not": [],
+  "action": "inform",
+  "notes": "faq standard"
+}

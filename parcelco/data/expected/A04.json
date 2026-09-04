@@ -1,0 +1,9 @@
+{
+  "ticket_id": "A04",
+  "must_include": [],
+  "must_not": [
+    "full refund approved"
+  ],
+  "action": "inform",
+  "notes": "1 day past SLA under 48h"
+}

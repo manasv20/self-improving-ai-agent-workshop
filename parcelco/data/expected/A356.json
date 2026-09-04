@@ -1,0 +1,9 @@
+{
+  "ticket_id": "A356",
+  "must_include": [
+    "warehouse"
+  ],
+  "must_not": [],
+  "action": "inform",
+  "notes": "before scan"
+}

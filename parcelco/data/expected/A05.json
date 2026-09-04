@@ -1,0 +1,9 @@
+{
+  "ticket_id": "A05",
+  "must_include": [
+    "48"
+  ],
+  "must_not": [],
+  "action": "inform",
+  "notes": ">48h past express SLA credit"
+}

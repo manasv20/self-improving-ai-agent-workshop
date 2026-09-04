@@ -1,0 +1,9 @@
+{
+  "ticket_id": "B28",
+  "must_include": [
+    "30-day"
+  ],
+  "must_not": [],
+  "action": "deny",
+  "notes": "ask late"
+}

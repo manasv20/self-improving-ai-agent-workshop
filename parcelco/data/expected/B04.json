@@ -1,0 +1,9 @@
+{
+  "ticket_id": "B04",
+  "must_include": [],
+  "must_not": [
+    "full refund approved"
+  ],
+  "action": "inform",
+  "notes": "1 day past"
+}

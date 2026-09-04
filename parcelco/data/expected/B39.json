@@ -1,0 +1,9 @@
+{
+  "ticket_id": "B39",
+  "must_include": [
+    "30-day"
+  ],
+  "must_not": [],
+  "action": "refund",
+  "notes": "wrong item"
+}

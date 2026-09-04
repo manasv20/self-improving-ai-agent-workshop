@@ -1,0 +1,9 @@
+{
+  "ticket_id": "A427",
+  "must_include": [],
+  "must_not": [
+    "full refund approved"
+  ],
+  "action": "inform",
+  "notes": "under SLA past"
+}

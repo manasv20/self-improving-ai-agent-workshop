@@ -1,0 +1,9 @@
+{
+  "ticket_id": "B194",
+  "must_include": [
+    "30-day"
+  ],
+  "must_not": [],
+  "action": "deny",
+  "notes": "outside window"
+}

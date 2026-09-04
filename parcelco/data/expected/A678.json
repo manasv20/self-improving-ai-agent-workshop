@@ -1,0 +1,11 @@
+{
+  "ticket_id": "A678",
+  "must_include": [
+    "30-day"
+  ],
+  "must_not": [
+    "vip exception granted"
+  ],
+  "action": "escalate",
+  "notes": "loyalty VIP"
+}

@@ -1,0 +1,11 @@
+{
+  "ticket_id": "A416",
+  "must_include": [
+    "48"
+  ],
+  "must_not": [
+    "full refund approved"
+  ],
+  "action": "inform",
+  "notes": "credit vs refund"
+}

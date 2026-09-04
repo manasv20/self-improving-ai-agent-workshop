@@ -1,0 +1,9 @@
+{
+  "ticket_id": "B86",
+  "must_include": [],
+  "must_not": [
+    "full refund approved"
+  ],
+  "action": "inform",
+  "notes": "short delay"
+}

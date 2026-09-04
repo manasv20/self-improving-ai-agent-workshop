@@ -1,0 +1,9 @@
+{
+  "ticket_id": "B195",
+  "must_include": [
+    "30-day"
+  ],
+  "must_not": [],
+  "action": "deny",
+  "notes": "old order deny"
+}

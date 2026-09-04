@@ -1,0 +1,11 @@
+{
+  "ticket_id": "B278",
+  "must_include": [
+    "48"
+  ],
+  "must_not": [
+    "full refund"
+  ],
+  "action": "inform",
+  "notes": "SLA credit"
+}

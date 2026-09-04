@@ -1,0 +1,9 @@
+{
+  "ticket_id": "A589",
+  "must_include": [
+    "1 business day"
+  ],
+  "must_not": [],
+  "action": "escalate",
+  "notes": "fraud"
+}

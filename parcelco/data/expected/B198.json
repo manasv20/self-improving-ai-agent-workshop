@@ -1,0 +1,9 @@
+{
+  "ticket_id": "B198",
+  "must_include": [],
+  "must_not": [
+    "1200.00"
+  ],
+  "action": "escalate",
+  "notes": "no invent amount"
+}

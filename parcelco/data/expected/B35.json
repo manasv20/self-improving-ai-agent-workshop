@@ -1,0 +1,9 @@
+{
+  "ticket_id": "B35",
+  "must_include": [
+    "warehouse"
+  ],
+  "must_not": [],
+  "action": "inform",
+  "notes": "faq cancel"
+}

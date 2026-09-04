@@ -1,0 +1,9 @@
+{
+  "ticket_id": "A20",
+  "must_include": [
+    "30-day"
+  ],
+  "must_not": [],
+  "action": "refund",
+  "notes": "3 weeks damaged"
+}

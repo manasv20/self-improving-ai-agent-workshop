@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+docker/langfuse/.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.chroma/
+parcelco/memory/rounds.sqlite
+parcelco/memory/chroma/
+parcelco/memory/model_compare/
+*.egg-info/
+dist/
+build/
+.DS_Store

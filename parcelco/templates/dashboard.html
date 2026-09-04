@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="n8n-graphite">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ParcelCo Flywheel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header class="app-bar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"></span>
+      <div>
+        <h1>ParcelCo Flywheel</h1>
+        <p class="sub">{{ model }} · <span id="suite-size">{{ suite.active_improve }}A / {{ suite.active_holdout }}B</span> of {{ suite.catalog_total }} · suite <span id="suite-mode">{{ suite.mode }}</span></p>
+      </div>
+    </div>
+    <div class="app-bar-right">
+      <span id="lf-pill" class="status-pill {{ 'on' if langfuse.enabled and langfuse.auth_ok else 'off' }}">
+        LangFuse · {{ 'on' if langfuse.enabled and langfuse.auth_ok else 'off' }}
+      </span>
+      <a id="btn-langfuse" class="btn ghost" href="{{ langfuse.ui_url }}" target="_blank" rel="noopener">Traces</a>
+      <span id="busy" class="status-pill idle">idle</span>
+    </div>
+  </header>
+
+  <div class="guide" id="guide" role="status">
+    <div class="guide-now">
+      <span class="guide-label">Do this next</span>
+      <strong id="guide-title">① Click a ticket on the left</strong>
+      <p id="guide-body">Then press the orange button. The LLM only writes the reply — the checklist grades it.</p>
+    </div>
+    <div class="guide-legend">
+      <span class="leg llm">Orange border = LLM writing</span>
+      <span class="leg harness">Gray = harness (RAG / checklist / gate)</span>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <aside class="ticket-rail">
+      <div class="rail-head">
+        <h2>1 · Pick a ticket</h2>
+        <span id="ticket-count" class="count">—</span>
+      </div>
+      <p class="rail-help">Customer messages the loop will answer.</p>
+      <div class="rail-filters suite-filters" role="group" aria-label="Catalog size">
+        <button type="button" class="chip" data-suite="demo" title="Fast live room — core 35 only">Demo 35</button>
+        <button type="button" class="chip" data-suite="full" title="Full catalog — 700 learn + 300 holdout">Full 1000</button>
+      </div>
+      <input id="ticket-search" type="search" placeholder="Search…" autocomplete="off" />
+      <div class="rail-filters">
+        <button type="button" class="chip active" data-split="">All</button>
+        <button type="button" class="chip" data-split="improve" title="Failures here can become lessons">Learn set</button>
+        <button type="button" class="chip" data-split="holdout" title="Score only — never write lessons from these">Holdout</button>
+      </div>
+      <ul id="ticket-list" class="ticket-list"></ul>
+    </aside>
+
+    <main class="main-col">
+      <div class="canvas-toolbar">
+        <div class="action-groups">
+          <div class="action-group primary-group">
+            <span class="group-label">One ticket</span>
+            <button id="btn-run" class="btn primary" disabled>② Run — LLM writes a reply</button>
+          </div>
+          <div class="action-group">
+            <span class="group-label">Many tickets (same loop)</span>
+            <button id="btn-baseline" class="btn ghost">③ Score suite</button>
+            <button id="btn-improve" class="btn ghost">④ Learn + keep/revert</button>
+            <label class="rounds">×<input id="rounds" type="number" min="1" max="8" value="1" title="Learn rounds" /></label>
+            <button id="btn-reset" class="btn ghost">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <p id="stack-detail" class="now-line">Waiting — pick a ticket, then run.</p>
+
+      <div class="canvas" id="canvas" aria-label="The loop">
+        <div class="canvas-dots" aria-hidden="true"></div>
+        <div class="canvas-label">Autonomous loop · heal + Reflect on learn-set (holdout skips Reflect)</div>
+        <div class="flow one-loop">
+          <div class="node harness" data-node="retrieve">
+            <span class="node-who">harness</span>
+            <span class="node-kicker">1</span>
+            <strong>Retrieve</strong>
+            <p class="node-body" id="node-retrieve">Pull policy / FAQ</p>
+          </div>
+          <div class="flow-edge" aria-hidden="true"><span></span></div>
+          <div class="node llm" data-node="generate">
+            <span class="node-who">LLM</span>
+            <span class="node-kicker">2</span>
+            <strong>Generate</strong>
+            <p class="node-body" id="node-generate">Qwen writes the reply</p>
+          </div>
+          <div class="flow-edge" aria-hidden="true"><span></span></div>
+          <div class="node harness" data-node="evaluate">
+            <span class="node-who">harness</span>
+            <span class="node-kicker">3</span>
+            <strong>Evaluate</strong>
+            <p class="node-body" id="node-evaluate">Checklist grades it</p>
+          </div>
+          <div class="flow-edge heal-edge" aria-hidden="true"><span></span></div>
+          <div class="node harness" data-node="heal">
+            <span class="node-who">harness</span>
+            <span class="node-kicker">4</span>
+            <strong>Heal</strong>
+            <p class="node-body" id="node-heal">Ask LLM to rewrite</p>
+          </div>
+          <div class="flow-edge" aria-hidden="true"><span></span></div>
+          <div class="node llm" data-node="reflect">
+            <span class="node-who">LLM</span>
+            <span class="node-kicker">5</span>
+            <strong>Reflect</strong>
+            <p class="node-body" id="node-reflect">Write lessons (learn-set)</p>
+          </div>
+        </div>
+
+        <div class="suite-lane" aria-label="Suite proof">
+          <div class="suite-lane-label">
+            Proof on the big suite · <strong>③ Score</strong> / <strong>④ Learn</strong>
+            <span>700 learn + 300 holdout (1000) — measure lift &amp; traces. Holdout never writes lessons.</span>
+          </div>
+          <div class="flow suite-flow">
+            <div class="node harness suite-node" data-node="suite">
+              <span class="node-who">harness</span>
+              <span class="node-kicker">suite</span>
+              <strong>Score suite</strong>
+              <p class="node-body" id="node-suite">Run many tickets</p>
+            </div>
+            <div class="flow-edge" aria-hidden="true"><span></span></div>
+            <div class="node harness suite-node" data-node="gate">
+              <span class="node-who">harness</span>
+              <span class="node-kicker">gate</span>
+              <strong>Keep / revert</strong>
+              <p class="node-body" id="node-gate">Batch Learn gate (holdout)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <details class="score-bar card" id="score-bar">
+        <summary class="score-summary">
+          <strong>Proof on many tickets</strong>
+          <span>Score suite / Learn — where it was → where it is now</span>
+        </summary>
+        <p class="section-help">Same loop on the suite. Learn set teaches; holdout only scores.</p>
+        <div class="before-after" id="before-after">
+          <div class="ba-col">
+            <span class="ba-label">Where it was</span>
+            <strong id="ba-before">—</strong>
+            <small id="ba-before-detail">Press “Score suite”</small>
+          </div>
+          <div class="ba-arrow" aria-hidden="true">→</div>
+          <div class="ba-col">
+            <span class="ba-label">Where it is now</span>
+            <strong id="ba-after">—</strong>
+            <small id="ba-after-detail">After “Learn”</small>
+          </div>
+          <div class="ba-col ba-delta">
+            <span class="ba-label">Lift</span>
+            <strong id="ba-delta">—</strong>
+            <small>Learn / Holdout</small>
+          </div>
+          <div class="scores mini">
+            <div><span>Learn set</span><strong id="score-a">—</strong></div>
+            <div><span>Holdout</span><strong id="score-b">—</strong></div>
+            <div><span>Round</span><strong id="score-round">—</strong></div>
+          </div>
+        </div>
+        <div class="why-box" id="why-box">
+          <span class="ba-label">Why it improved (or didn’t)</span>
+          <p id="why-text">Score suite, then Learn — lessons that were kept show up here as the reason for lift.</p>
+        </div>
+        <p class="journey-meta" id="journey-meta"></p>
+        <ol class="journey-timeline" id="journey-timeline"></ol>
+        <canvas id="chart" height="90"></canvas>
+      </details>
+    </main>
+
+    <aside class="detail-rail">
+      <h2>This ticket</h2>
+      <p class="ticket-id-line"><code id="sel-id">—</code> <span id="sel-meta" class="meta"></span></p>
+      <p id="sel-message" class="message">Select a ticket on the left.</p>
+      <div class="expect-box">
+        <div><span>Checklist expects</span><strong id="sel-action">—</strong></div>
+        <div><span>Why</span><strong id="sel-notes">—</strong></div>
+      </div>
+
+      <h2 class="mt">Heal trail</h2>
+      <p class="rail-help" id="heal-status">If the checklist fails, Heal retries (up to 2). Each draft appears here.</p>
+      <ol id="heal-timeline" class="heal-timeline">
+        <li class="empty">No attempts yet — run the loop.</li>
+      </ol>
+
+      <h2 class="mt">What Reflect learned</h2>
+      <pre id="reflect-lesson" class="llm-draft reflect-draft">Autonomous lessons from learn-set tickets show here.</pre>
+
+      <h2 class="mt">What the LLM wrote</h2>
+      <pre id="llm-draft" class="llm-draft">Run the loop to see Qwen’s reply here.</pre>
+      <p id="result-line" class="result-line">Not run yet.</p>
+      <p id="lf-inspector-link-wrap" class="lf-link" hidden>
+        <a id="lf-inspector-link" href="#" target="_blank" rel="noopener">Open LangFuse trace ↗</a>
+      </p>
+
+      <details class="more-details">
+        <summary>Live log &amp; raw inspector</summary>
+        <ul id="activity" class="activity"></ul>
+        <pre id="inspector" class="inspector">JSON details after a run.</pre>
+      </details>
+    </aside>
+  </div>
+
+  <details class="card knowledge-card" id="knowledge-card">
+    <summary class="knowledge-summary">
+      <strong>What we’re using</strong>
+      <span>Stack · learn vs holdout · policy · FAQ · memory (click to expand)</span>
+    </summary>
+    <div class="knowledge-head">
+      <div class="knowledge-tabs" role="tablist">
+        <button type="button" class="ktab active" data-ktab="stack">Stack</button>
+        <button type="button" class="ktab" data-ktab="splits">Learn vs holdout</button>
+        <button type="button" class="ktab" data-ktab="policy">Policy</button>
+        <button type="button" class="ktab" data-ktab="faq">FAQ</button>
+        <button type="button" class="ktab" data-ktab="memory">Memory</button>
+      </div>
+    </div>
+    <div id="ktab-stack" class="ktab-panel active"><ul id="stack-list" class="stack-list"></ul></div>
+    <div id="ktab-splits" class="ktab-panel"><div id="splits-box" class="splits-box"></div></div>
+    <div id="ktab-policy" class="ktab-panel"><pre id="policy-text" class="doc-pre">Loading…</pre></div>
+    <div id="ktab-faq" class="ktab-panel"><div id="faq-list" class="faq-list"></div></div>
+    <div id="ktab-memory" class="ktab-panel">
+      <h3>System prompt</h3>
+      <pre id="prompt-text" class="doc-pre"></pre>
+      <h3>learnings.md</h3>
+      <pre id="learnings-text" class="doc-pre"></pre>
+    </div>
+  </details>
+
+  <details class="card history-card">
+    <summary class="knowledge-summary">
+      <strong>Round history</strong>
+      <span>Keep / revert log (click to expand)</span>
+    </summary>
+    <div class="table-wrap tall">
+      <table>
+        <thead>
+          <tr>
+            <th>Round</th>
+            <th>Learn set</th>
+            <th>Δ</th>
+            <th>Holdout</th>
+            <th>Δ</th>
+            <th>Gate</th>
+            <th>Version</th>
+            <th>Lesson</th>
+            <th>When</th>
+          </tr>
+        </thead>
+        <tbody id="history-body"></tbody>
+      </table>
+    </div>
+  </details>
+
+  <span id="lf-label" hidden>{{ langfuse.label }}</span>
+  <span id="ticket" hidden>—</span>
+  <span id="status" hidden>idle</span>
+
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

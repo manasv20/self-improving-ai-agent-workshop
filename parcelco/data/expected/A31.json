@@ -1,0 +1,9 @@
+{
+  "ticket_id": "A31",
+  "must_include": [
+    "30-day"
+  ],
+  "must_not": [],
+  "action": "deny",
+  "notes": "ask window"
+}

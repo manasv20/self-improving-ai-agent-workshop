@@ -1,0 +1,11 @@
+{
+  "ticket_id": "A565",
+  "must_include": [
+    "transit"
+  ],
+  "must_not": [
+    "cancelled"
+  ],
+  "action": "inform",
+  "notes": "departed warehouse"
+}

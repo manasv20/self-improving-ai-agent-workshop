@@ -1,0 +1,7 @@
+{
+  "ticket_id": "B96",
+  "must_include": [],
+  "must_not": [],
+  "action": "escalate",
+  "notes": "lawyer"
+}

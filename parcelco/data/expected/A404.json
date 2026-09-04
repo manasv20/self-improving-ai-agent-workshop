@@ -1,0 +1,9 @@
+{
+  "ticket_id": "A404",
+  "must_include": [
+    "48"
+  ],
+  "must_not": [],
+  "action": "inform",
+  "notes": "credit faq"
+}

@@ -1,0 +1,31 @@
+[project]
+name = "parcelco-flywheel"
+version = "0.1.0"
+description = "Self-improving ParcelCo support agent workshop (LangGraph + LangFuse + Flask) — local Qwen"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "flask>=3.0",
+  "python-dotenv>=1.0",
+  "pydantic>=2.0",
+  "langchain>=0.3",
+  "langchain-openai>=0.2",
+  "langchain-community>=0.3",
+  "langgraph>=0.2",
+  "langfuse>=2.0",
+  "chromadb>=0.5",
+  "tiktoken>=0.7",
+]
+
+[project.scripts]
+parcelco = "parcelco.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["parcelco*"]
+
+[tool.setuptools.package-data]
+parcelco = ["data/**/*", "templates/**/*", "static/**/*", "memory/*"]

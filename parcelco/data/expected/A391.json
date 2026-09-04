@@ -1,0 +1,9 @@
+{
+  "ticket_id": "A391",
+  "must_include": [
+    "48"
+  ],
+  "must_not": [],
+  "action": "inform",
+  "notes": "over 48h credit"
+}

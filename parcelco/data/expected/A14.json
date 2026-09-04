@@ -1,0 +1,11 @@
+{
+  "ticket_id": "A14",
+  "must_include": [
+    "48"
+  ],
+  "must_not": [
+    "full refund"
+  ],
+  "action": "inform",
+  "notes": "60h past SLA credit"
+}

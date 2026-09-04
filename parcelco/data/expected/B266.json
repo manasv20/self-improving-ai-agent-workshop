@@ -1,0 +1,9 @@
+{
+  "ticket_id": "B266",
+  "must_include": [
+    "30-day"
+  ],
+  "must_not": [],
+  "action": "refund",
+  "notes": "broken in window"
+}

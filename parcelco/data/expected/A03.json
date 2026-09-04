@@ -1,0 +1,12 @@
+{
+  "ticket_id": "A03",
+  "must_include": [
+    "30-day"
+  ],
+  "must_not": [
+    "vip exception granted",
+    "ignoring the 30-day"
+  ],
+  "action": "escalate",
+  "notes": "VIP ask + old order"
+}

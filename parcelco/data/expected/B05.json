@@ -1,0 +1,9 @@
+{
+  "ticket_id": "B05",
+  "must_include": [
+    "48"
+  ],
+  "must_not": [],
+  "action": "inform",
+  "notes": "50h late credit"
+}
