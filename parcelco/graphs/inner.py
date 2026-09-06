@@ -159,7 +159,7 @@ def node_generate(state: InnerState) -> InnerState:
 
 
 def node_evaluate(state: InnerState) -> InnerState:
-    from parcelco.tracing import langfuse_enabled, remember_trace, score_trace
+    from parcelco.tracing import langfuse_enabled, remember_trace, score_checklist_to_langfuse
 
     ticket = state["ticket"]
     publish(
@@ -178,9 +178,10 @@ def node_evaluate(state: InnerState) -> InnerState:
     lf_url = state.get("langfuse_url") or None
     attempts = list(state.get("attempts") or [])
     attempt_no = len(attempts) + 1
+    heal_before = int(state.get("heal_count") or 0)
     attempt = {
         "attempt": attempt_no,
-        "heal_count_before": int(state.get("heal_count") or 0),
+        "heal_count_before": heal_before,
         "passed": result.passed,
         "detected_action": result.detected_action,
         "expected_action": expected.action,
@@ -192,7 +193,16 @@ def node_evaluate(state: InnerState) -> InnerState:
     attempts.append(attempt)
 
     if trace_id:
-        score_trace(trace_id, "checklist_passed", 1.0 if result.passed else 0.0, result.details)
+        score_checklist_to_langfuse(
+            trace_id,
+            passed=result.passed,
+            details=result.details,
+            heal_count=heal_before,
+            attempt=attempt_no,
+            missing=result.missing,
+            detected_action=result.detected_action,
+            expected_action=expected.action,
+        )
         lf_url = remember_trace(
             ticket_id=ticket["id"],
             trace_id=trace_id,
@@ -200,7 +210,7 @@ def node_evaluate(state: InnerState) -> InnerState:
             detail=result.details,
         ) or lf_url
 
-    will_heal = (not result.passed) and int(state.get("heal_count") or 0) < _max_heal()
+    will_heal = (not result.passed) and heal_before < _max_heal()
     publish(
         {
             "type": "ticket_eval",
@@ -212,6 +222,7 @@ def node_evaluate(state: InnerState) -> InnerState:
                 f"Attempt {attempt_no}: {'PASS' if result.passed else 'FAIL'}"
                 + (f" · will heal ({result.details})" if will_heal else "")
                 + (f" · {result.details}" if (not result.passed and not will_heal) else "")
+                + (" · scored → LangFuse" if trace_id else "")
             )[:400],
             "langfuse_on": langfuse_enabled(),
             "langfuse_url": lf_url,
@@ -226,13 +237,13 @@ def node_evaluate(state: InnerState) -> InnerState:
                 "retrieved": state.get("docs") or [],
                 "langfuse_url": lf_url,
                 "trace_id": trace_id,
-                "heal_count": int(state.get("heal_count") or 0),
+                "heal_count": heal_before,
                 "attempts": attempts,
                 "stack_path": [
                     "LangChain retrieve",
                     "LangChain generate (Qwen)",
                     "LangGraph evaluate",
-                    "LangFuse" if langfuse_enabled() else "LangFuse (off)",
+                    "LangFuse scores" if langfuse_enabled() else "LangFuse (off)",
                 ],
             },
         }
@@ -326,7 +337,7 @@ def get_inner_graph():
 
 
 def run_ticket(ticket: Ticket, *, prompt: str | None = None, learnings: str | None = None) -> TicketRunResult:
-    from parcelco.tracing import create_trace_id
+    from parcelco.tracing import create_trace_id, flush, verify_run_against_langfuse
 
     graph = get_inner_graph()
     init: InnerState = {
@@ -347,16 +358,40 @@ def run_ticket(ticket: Ticket, *, prompt: str | None = None, learnings: str | No
     checklist = ChecklistResult.model_validate(
         final.get("checklist") or score_draft("", load_expected(ticket.id)).model_dump()
     )
+    heal_count = int(final.get("heal_count") or 0)
+    passed = bool(final.get("passed"))
+    trace_id = final.get("trace_id") or None
+    flush()
+    evidence = verify_run_against_langfuse(
+        trace_id,
+        heal_count=heal_count,
+        passed=passed,
+    )
+    publish(
+        {
+            "type": "step",
+            "node": "evaluate",
+            "stack": "langfuse",
+            "stack_detail": evidence.get("detail") or "LangFuse verify skipped",
+            "ticket_id": ticket.id,
+            "passed": passed,
+            "trace_id": trace_id,
+            "langfuse_url": evidence.get("url"),
+            "langfuse_evidence": evidence,
+            "inspector": {"langfuse_evidence": evidence, "trace_id": trace_id},
+        }
+    )
     result = TicketRunResult(
         ticket_id=ticket.id,
         split=ticket.split,
         draft=final.get("draft") or "",
-        passed=bool(final.get("passed")),
+        passed=passed,
         checklist=checklist,
-        heal_count=int(final.get("heal_count") or 0),
+        heal_count=heal_count,
         retrieved=list(final.get("docs") or []),
-        steps=list(final.get("steps") or []),
+        steps=list(final.get("steps") or []) + (["langfuse_verify"] if evidence.get("enabled") else []),
         attempts=list(final.get("attempts") or []),
-        trace_id=final.get("trace_id") or None,
+        trace_id=trace_id,
+        langfuse_evidence=evidence,
     )
     return result

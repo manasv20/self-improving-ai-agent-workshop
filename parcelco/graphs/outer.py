@@ -445,6 +445,23 @@ def reflect_after_ticket(ticket, result: TicketRunResult) -> dict:
         )
         return {"reflected": False, "reason": "rejected", "lesson": ""}
 
+    # Prefer LangFuse-scored failure comments when present (same signals, shared store).
+    lf_ev = result.langfuse_evidence or {}
+    lf_scores = lf_ev.get("scores") or []
+    checklist_comments = [
+        str(s.get("comment") or "")
+        for s in lf_scores
+        if isinstance(s, dict) and s.get("name") == "checklist_passed" and s.get("comment")
+    ]
+    if checklist_comments and "30-day" in " ".join(checklist_comments).lower():
+        # Reinforce that Reflect is reading the LangFuse score trail
+        if "30-day" not in lesson.lower():
+            lesson = (
+                lesson
+                + '\n- LangFuse checklist scores show missing "30-day" — cite the 30-day refund window.'
+            )
+            lesson = _sanitize_lesson_block(lesson)
+
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     before = read_learnings()
     after = _append_learnings(
@@ -464,17 +481,26 @@ def reflect_after_ticket(ticket, result: TicketRunResult) -> dict:
         )
         return {"reflected": False, "reason": "blocked", "lesson": lesson}
 
+    from parcelco.tracing import annotate_lesson_on_trace
+
+    annotate_lesson_on_trace(result.trace_id, lesson, kept=True)
+
     publish(
         {
             "type": "gate",
             "stack": "autonomous",
-            "stack_detail": "KEEP — safe policy lesson appended to learnings.md",
+            "stack_detail": "KEEP — lesson → learnings.md + LangFuse trace",
             "kept": True,
             "ticket_id": tid,
-            "inspector": {"lesson": lesson, "source": "autonomous_reflect", "ticket_id": tid},
+            "inspector": {
+                "lesson": lesson,
+                "source": "autonomous_reflect",
+                "ticket_id": tid,
+                "langfuse_evidence": lf_ev,
+            },
         }
     )
-    return {"reflected": True, "reason": "learned", "lesson": lesson}
+    return {"reflected": True, "reason": "learned", "lesson": lesson, "langfuse_evidence": lf_ev}
 
 
 def improve(rounds: int | None = None) -> list[dict]:

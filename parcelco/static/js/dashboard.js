@@ -101,7 +101,11 @@
 
   function setNodeBody(node, text) {
     const n = el(`node-${node}`);
-    if (n && text) n.textContent = String(text).slice(0, 160);
+    if (n && text) n.textContent = String(text).slice(0, 220);
+  }
+
+  function openRailPanel(_id) {
+    /* live-stage is always visible in the demo shell */
   }
 
   async function loadTickets() {
@@ -197,22 +201,21 @@
     if (rl) rl.textContent = "Autonomous lessons from learn-set tickets show here.";
     renderHealTimeline([]);
     setHealingPulse(false);
-    setNodeBody("heal", "Ask LLM to rewrite");
+    setNodeBody("retrieve", "Idle — waiting to pull context.");
+    setNodeBody("generate", "Idle — will draft from prompt + lessons + RAG.");
+    setNodeBody("evaluate", "Idle — will PASS/FAIL with reasons.");
+    setNodeBody("heal", "Idle — only runs if checklist fails.");
+    setNodeBody("reflect", "Idle — skipped on holdout / clean first-try PASS.");
     setTeach("pick");
     setGuide(
-      `① Selected ${t.id} — press the orange button`,
-      "Qwen will write a support reply. The checklist (not the LLM) decides pass/fail."
+      `① Selected ${t.id} — press Run`,
+      "Watch nodes update live. Checklist grades the reply; Reflect may write a lesson on learn-set."
     );
   }
 
   function setHealStatus(text) {
     const n = el("heal-status");
     if (n) n.textContent = text;
-  }
-
-  function openRailPanel(id) {
-    const panel = el(id);
-    if (panel) panel.open = true;
   }
 
   function escapeHtml(s) {
@@ -433,6 +436,28 @@
     } else wrap.hidden = true;
   }
 
+  function renderLangfuseEvidence(ev) {
+    const box = el("lf-evidence");
+    const detail = el("lf-evidence-detail");
+    if (!box || !detail) return;
+    if (!ev || !Object.keys(ev).length) {
+      box.classList.remove("ok", "bad");
+      detail.textContent =
+        "After a run: generations counted, checklist scores written, heal verified against the trace.";
+      return;
+    }
+    const gens = ev.generation_count != null ? ev.generation_count : "?";
+    const expect = ev.expected_generations != null ? ev.expected_generations : "?";
+    const lat = ev.total_latency_s != null ? `${ev.total_latency_s}s` : "—";
+    const verdict = ev.verdict || "—";
+    detail.textContent =
+      ev.detail ||
+      `${verdict}: ${gens}/${expect} generations · latency ${lat}`;
+    box.classList.toggle("ok", ev.verified === true);
+    box.classList.toggle("bad", ev.verified === false);
+    if (ev.url) setInspectorLink(ev.url);
+  }
+
   function applyEvent(ev) {
     if (!ev || ev.type === "ping") return;
     if (ev.node) highlightNode(ev.node);
@@ -443,22 +468,25 @@
     if (ev.part_b_rate != null) el("score-b").textContent = fmt(ev.part_b_rate);
     if (ev.round != null) el("score-round").textContent = String(ev.round);
 
-    if (ev.node === "retrieve") setNodeBody("retrieve", "Fetching policy / FAQ…");
-    if (ev.node === "generate") setNodeBody("generate", "Qwen drafting…");
-    if (ev.node === "heal") setNodeBody("heal", "Retrying from checklist…");
+    if (ev.node === "retrieve") setNodeBody("retrieve", "Querying policy.md + FAQ…");
+    if (ev.node === "generate") setNodeBody("generate", "Qwen drafting customer reply + ACTION…");
+    if (ev.node === "heal") setNodeBody("heal", "Building repair brief → re-run Generate…");
     if (ev.node === "reflect" || (ev.status && String(ev.status).includes("improve_round"))) {
       highlightNode("reflect");
-      setNodeBody("reflect", ev.stack_detail || "Writing lessons…");
+      setNodeBody("reflect", ev.stack_detail || "Writing policy lessons into learnings.md…");
       setTeach(ev.stack === "autonomous" ? "done" : "learn");
     }
     if (ev.node === "suite") {
       highlightNode("suite");
-      setNodeBody("suite", ev.stack_detail || "Re-scoring suite…");
+      setNodeBody("suite", ev.stack_detail || "Scoring many tickets…");
     }
     if (ev.type === "gate") {
       highlightNode(ev.stack === "autonomous" ? "reflect" : "gate");
       if (ev.stack === "autonomous") {
-        setNodeBody("reflect", ev.stack_detail || (ev.kept ? "Lesson KEPT" : "Skipped"));
+        setNodeBody(
+          "reflect",
+          ev.kept ? "KEEP — safe lesson appended to learnings.md" : (ev.stack_detail || "REVERT — no memory write")
+        );
       } else {
         setNodeBody("gate", ev.stack_detail || (ev.kept ? "KEEP" : "REVERT"));
       }
@@ -478,9 +506,14 @@
 
     if (ev.type === "ticket_eval") {
       const willHeal = !!ev.will_heal;
+      const details = (ev.attempt && ev.attempt.details) || "";
       setNodeBody(
         "evaluate",
-        ev.passed ? "PASS" : willHeal ? "FAIL · healing next" : "FAIL · no more heals"
+        ev.passed
+          ? `PASS — ACTION + phrases OK`
+          : willHeal
+            ? `FAIL — ${details || "will heal"}`.slice(0, 200)
+            : `FAIL final — ${details || "max heals"}`.slice(0, 200)
       );
       el("result-line").textContent = willHeal
         ? `${ev.ticket_id}: FAIL — healing…`
@@ -494,48 +527,50 @@
       }
       if (willHeal) {
         highlightNode("heal");
-        setNodeBody("heal", "Queued — LLM will rewrite with checklist errors");
+        setNodeBody("heal", "Queued — prior draft + missing phrases → Generate");
       } else if (!ev.passed) {
         setHealingPulse(false);
-        setNodeBody("heal", "Stopped (max heals or final FAIL)");
+        setNodeBody("heal", "Stopped after max heals (2) — Reflect next");
       } else {
         setHealingPulse(false);
+        setNodeBody("heal", "Not needed — checklist passed");
       }
     }
     if (ev.node === "heal" && ev.attempt_summary) {
       setHealingPulse(true);
       const miss = (ev.attempt_summary.missing || []).join(", ");
       const body = miss
-        ? `Heal #${ev.heal_count || "?"}: fix ${miss}`
-        : `Heal #${ev.heal_count || "?"}: ${ev.attempt_summary.reason || ""}`;
-      setNodeBody("heal", body.slice(0, 140));
-      setHealStatus(
-        `Structured heal #${ev.heal_count || "?"} — prior draft + fix list sent to Generate`
-      );
+        ? `Heal #${ev.heal_count || "?"}: must include ${miss}`
+        : `Heal #${ev.heal_count || "?"}: ${ev.attempt_summary.reason || "rewrite"}`;
+      setNodeBody("heal", body.slice(0, 200));
+      setHealStatus(`heal #${ev.heal_count || "?"} · fix list → Generate`);
     }
 
     if (ev.langfuse_url) setInspectorLink(ev.langfuse_url);
+    if (ev.langfuse_evidence) renderLangfuseEvidence(ev.langfuse_evidence);
     if (ev.inspector) {
       el("inspector").textContent = JSON.stringify(ev.inspector, null, 2);
       if (ev.inspector.langfuse_url) setInspectorLink(ev.inspector.langfuse_url);
+      if (ev.inspector.langfuse_evidence) renderLangfuseEvidence(ev.inspector.langfuse_evidence);
       if (ev.inspector.draft) {
         el("llm-draft").textContent = ev.inspector.draft;
-        setNodeBody("generate", String(ev.inspector.draft).slice(0, 120));
+        setNodeBody("generate", `Draft ready (${String(ev.inspector.draft).length} chars)`);
         openRailPanel("panel-draft");
       }
       if (ev.inspector.retrieved) {
         const docs = ev.inspector.retrieved;
-        setNodeBody("retrieve", Array.isArray(docs) ? `${docs.length} chunks` : "retrieved");
+        const n = Array.isArray(docs) ? docs.length : 0;
+        const preview = Array.isArray(docs) && docs[0] ? String(docs[0]).replace(/\s+/g, " ").slice(0, 80) : "";
+        setNodeBody("retrieve", n ? `${n} chunk(s)${preview ? ` · ${preview}…` : ""}` : "no chunks");
       }
       if (ev.inspector.checklist && ev.type !== "ticket_eval") {
         const c = ev.inspector.checklist;
-        const why = c.passed ? "PASS" : String(c.details || "FAIL").replace(/\s+/g, " ").slice(0, 72);
-        setNodeBody("evaluate", c.passed ? "PASS" : `FAIL · ${why}`);
+        const why = c.passed ? "PASS" : String(c.details || "FAIL").replace(/\s+/g, " ").slice(0, 100);
+        setNodeBody("evaluate", c.passed ? "PASS — ACTION + phrases OK" : `FAIL · ${why}`);
       }
-      // Don't overwrite heal node with "0 heal(s)" while a retry is queued
       if (ev.inspector.heal_count != null && !ev.will_heal && ev.node !== "heal") {
         const n = Number(ev.inspector.heal_count) || 0;
-        if (n > 0) setNodeBody("heal", `${n} heal rewrite(s) used`);
+        if (n > 0) setNodeBody("heal", `${n} heal rewrite(s) used this ticket`);
       }
     }
 
@@ -659,7 +694,7 @@
     post("/api/run-ticket", { ticket_id: state.selectedId });
   };
   function openScorePanel() {
-    const bar = el("score-bar");
+    const bar = document.querySelector("details.more-inline");
     if (bar) bar.open = true;
     requestAnimationFrame(() => chart.resize());
   }
@@ -672,7 +707,7 @@
   };
   el("btn-improve").onclick = () => {
     setTeach("learn");
-    setGuide("④ Learning…", "Reflect (LLM) writes lessons from learn-set failures; gate may keep or revert.");
+    setGuide("④ Learning…", "Reflect writes checklist lessons; gate may keep or revert.");
     openScorePanel();
     post("/api/improve", { rounds: Number(el("rounds").value || 1) });
   };
@@ -682,12 +717,11 @@
     await loadKnowledge();
   };
 
-  const scoreBar = el("score-bar");
-  if (scoreBar) {
+  document.querySelectorAll("details.more-inline").forEach((scoreBar) => {
     scoreBar.addEventListener("toggle", () => {
       if (scoreBar.open) requestAnimationFrame(() => chart.resize());
     });
-  }
+  });
 
   const es = new EventSource("/api/events");
   es.onmessage = (msg) => {

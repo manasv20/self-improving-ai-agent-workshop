@@ -43,6 +43,7 @@ class TicketRunResult(BaseModel):
     steps: list[str] = Field(default_factory=list)
     attempts: list[dict[str, Any]] = Field(default_factory=list)
     trace_id: str | None = None
+    langfuse_evidence: dict[str, Any] = Field(default_factory=dict)
 
 
 class RoundRecord(BaseModel):

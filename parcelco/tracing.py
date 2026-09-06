@@ -135,12 +135,184 @@ def score_trace(trace_id: str | None, name: str, value: float, comment: str = ""
             name=name,
             value=float(value),
             trace_id=trace_id,
-            comment=comment or None,
+            comment=(comment or None),
             data_type="NUMERIC",
         )
         client.flush()
     except Exception:
         pass
+
+
+def score_checklist_to_langfuse(
+    trace_id: str | None,
+    *,
+    passed: bool,
+    details: str,
+    heal_count: int,
+    attempt: int,
+    missing: list[str] | None = None,
+    detected_action: str | None = None,
+    expected_action: str | None = None,
+) -> None:
+    """Push checklist outcome onto the LangFuse trace (shared evidence for the run)."""
+    if not trace_id:
+        return
+    miss = ", ".join(missing or []) or "none"
+    comment = (
+        f"attempt={attempt} heal={heal_count} "
+        f"action={detected_action or '?'}→{expected_action or '?'} "
+        f"missing=[{miss}] | {details or ''}"
+    )[:900]
+    score_trace(trace_id, "checklist_passed", 1.0 if passed else 0.0, comment)
+    score_trace(trace_id, "heal_count", float(heal_count), f"heals used before this eval: {heal_count}")
+    score_trace(trace_id, "attempt_number", float(attempt), comment)
+
+
+def annotate_lesson_on_trace(trace_id: str | None, lesson: str, *, kept: bool = True) -> None:
+    """Record Reflect output on the same trace so learning is visible in LangFuse."""
+    if not trace_id or not lesson:
+        return
+    score_trace(
+        trace_id,
+        "lesson_kept" if kept else "lesson_rejected",
+        1.0 if kept else 0.0,
+        lesson.strip()[:900],
+    )
+
+
+def fetch_trace_evidence(trace_id: str | None) -> dict[str, Any]:
+    """Read back observations + scores from LangFuse for this run."""
+    empty: dict[str, Any] = {
+        "enabled": langfuse_enabled(),
+        "trace_id": trace_id,
+        "url": trace_url(trace_id),
+        "generation_count": 0,
+        "total_latency_s": 0.0,
+        "generations": [],
+        "scores": [],
+        "error": None,
+    }
+    if not langfuse_enabled() or not trace_id:
+        empty["error"] = "langfuse_off" if not langfuse_enabled() else "no_trace_id"
+        return empty
+    flush()
+    client = get_client()
+    if client is None:
+        empty["error"] = "client_unavailable"
+        return empty
+    try:
+        obs = client.api.observations.get_many(trace_id=trace_id, limit=50)
+        data = obs.model_dump() if hasattr(obs, "model_dump") else {}
+        rows = data.get("data") or []
+        generations: list[dict[str, Any]] = []
+        total_lat = 0.0
+        for o in rows:
+            if not isinstance(o, dict):
+                o = o.model_dump() if hasattr(o, "model_dump") else {}
+            typ = (o.get("type") or "").upper()
+            if typ and typ != "GENERATION":
+                continue
+            lat = o.get("latency")
+            try:
+                lat_f = float(lat) if lat is not None else 0.0
+            except (TypeError, ValueError):
+                lat_f = 0.0
+            total_lat += lat_f
+            generations.append(
+                {
+                    "id": o.get("id"),
+                    "name": o.get("name") or "generation",
+                    "latency_s": round(lat_f, 3),
+                    "start_time": str(o.get("start_time") or ""),
+                }
+            )
+        scores_out: list[dict[str, Any]] = []
+        try:
+            sc = client.api.scores.get_many(trace_id=trace_id, limit=50)
+            sc_data = sc.model_dump() if hasattr(sc, "model_dump") else {}
+            for s in sc_data.get("data") or []:
+                if not isinstance(s, dict):
+                    s = s.model_dump() if hasattr(s, "model_dump") else {}
+                scores_out.append(
+                    {
+                        "name": s.get("name"),
+                        "value": s.get("value"),
+                        "comment": (s.get("comment") or "")[:240],
+                    }
+                )
+        except Exception:
+            # scores API shape varies across Langfuse versions
+            pass
+        return {
+            "enabled": True,
+            "trace_id": trace_id,
+            "url": trace_url(trace_id),
+            "generation_count": len(generations),
+            "total_latency_s": round(total_lat, 3),
+            "generations": generations,
+            "scores": scores_out,
+            "error": None,
+        }
+    except Exception as e:
+        empty["error"] = str(e)[:200]
+        return empty
+
+
+def verify_run_against_langfuse(
+    trace_id: str | None,
+    *,
+    heal_count: int,
+    passed: bool,
+) -> dict[str, Any]:
+    """Use LangFuse as independent evidence that heal/generate actually ran.
+
+    Checklist remains the policy grader. LangFuse verifies the *workflow*:
+    we expect at least (1 + heal_count) LLM generations on the trace.
+    """
+    evidence = fetch_trace_evidence(trace_id)
+    expected = 1 + max(0, int(heal_count or 0))
+    gens = int(evidence.get("generation_count") or 0)
+    if not evidence.get("enabled"):
+        verdict = "skipped"
+        ok = None
+        detail = "LangFuse off — checklist-only verification"
+    elif evidence.get("error"):
+        verdict = "unavailable"
+        ok = None
+        detail = f"LangFuse read failed: {evidence['error']}"
+    elif gens >= expected:
+        verdict = "confirmed"
+        ok = True
+        detail = (
+            f"LangFuse saw {gens} generation(s) (expected ≥{expected} for "
+            f"{heal_count} heal(s)). Checklist={'PASS' if passed else 'FAIL'}."
+        )
+    else:
+        verdict = "mismatch"
+        ok = False
+        detail = (
+            f"LangFuse saw {gens} generation(s); expected ≥{expected} "
+            f"after {heal_count} heal(s). Checklist={'PASS' if passed else 'FAIL'}."
+        )
+    evidence.update(
+        {
+            "expected_generations": expected,
+            "heal_count": heal_count,
+            "checklist_passed": passed,
+            "verified": ok,
+            "verdict": verdict,
+            "detail": detail,
+        }
+    )
+    # Persist verification back onto the trace
+    if evidence.get("enabled") and trace_id and ok is not None:
+        score_trace(
+            trace_id,
+            "heal_workflow_verified",
+            1.0 if ok else 0.0,
+            detail,
+        )
+    return evidence
 
 
 def remember_trace(

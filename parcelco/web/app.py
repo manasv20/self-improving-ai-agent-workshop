@@ -83,7 +83,7 @@ def api_knowledge():
                 {"id": "rag", "name": "RAG (policy + FAQ)", "role": "Frozen knowledge retrieve — not retrained", "detail": "Chroma or keyword fallback"},
                 {"id": "checklist", "name": "Python checklist", "role": "Pass/fail gate (not LLM self-grade)", "detail": "expected/*.json"},
                 {"id": "memory", "name": "Prompt + learnings.md", "role": "What Reflect updates (gated keep/revert)", "detail": "parcelco/memory/"},
-                {"id": "langfuse", "name": "LangFuse", "role": "Traces each generate", "detail": tracing.status().get("label")},
+                {"id": "langfuse", "name": "LangFuse", "role": "Score store + heal workflow verify + lesson annotate", "detail": tracing.status().get("label")},
                 {"id": "data", "name": "Labeled tickets", "role": "Learn set + holdout", "detail": f"{info['catalog_improve']} learn / {info['catalog_holdout']} holdout"},
             ],
             "splits": {
@@ -259,6 +259,11 @@ def _publish_ticket_result(ticket, result, reflected: dict | None = None) -> Non
         detail += " · clean PASS (nothing to learn)"
     if lf_url:
         detail += " · LangFuse trace ready"
+    ev = result.langfuse_evidence or {}
+    if ev.get("verdict"):
+        detail += f" · LF {ev.get('verdict')}"
+        if ev.get("generation_count") is not None:
+            detail += f" ({ev.get('generation_count')} gen)"
 
     inspector = {
         "ticket_id": result.ticket_id,
@@ -272,6 +277,7 @@ def _publish_ticket_result(ticket, result, reflected: dict | None = None) -> Non
         "attempts": result.attempts,
         "langfuse_url": lf_url,
         "trace_id": result.trace_id,
+        "langfuse_evidence": result.langfuse_evidence or reflected.get("langfuse_evidence") or {},
         "autonomous": reflected,
     }
     if reflected.get("lesson"):
