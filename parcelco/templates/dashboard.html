@@ -65,14 +65,8 @@
           <div class="action-group primary-group">
             <button id="btn-run" class="btn primary" disabled>② Run this ticket</button>
           </div>
-          <div class="action-group muted-group">
-            <button id="btn-baseline" class="btn ghost">③ Score suite</button>
-            <button id="btn-improve" class="btn ghost">④ Learn</button>
-            <label class="rounds">×<input id="rounds" type="number" min="1" max="8" value="1" title="Learn rounds" /></label>
-            <button id="btn-reset" class="btn ghost">Reset</button>
-          </div>
         </div>
-        <p id="stack-detail" class="now-line">Waiting — pick a ticket, then Run.</p>
+        <p id="stack-detail" class="now-line">Waiting — pick a ticket, then Run. Reflect learns automatically on learn-set tickets.</p>
       </div>
 
       <div class="ticket-strip" id="ticket-strip">
@@ -154,7 +148,14 @@
       </section>
 
       <details class="more-inline">
-        <summary>Suite proof · Score / Learn · chart</summary>
+        <summary>Optional · suite proof (Score / Learn / Reset)</summary>
+        <p class="more-help">Not needed for the live demo — Run already Reflects per learn-set ticket. Use these only to measure lift across many tickets.</p>
+        <div class="action-group suite-actions">
+          <button id="btn-baseline" class="btn ghost">Score suite</button>
+          <button id="btn-improve" class="btn ghost">Learn + keep/revert</button>
+          <label class="rounds">×<input id="rounds" type="number" min="1" max="8" value="1" title="Learn rounds" /></label>
+          <button id="btn-reset" class="btn ghost">Reset memory</button>
+        </div>
         <div class="suite-lane" aria-label="Suite proof">
           <div class="flow suite-flow">
             <div class="node harness suite-node" data-node="suite">

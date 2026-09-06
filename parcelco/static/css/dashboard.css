@@ -1179,7 +1179,20 @@ tr.row-reverted { opacity: 0.7; }
   .ba-arrow { display: none; }
 }
 
-.lf-evidence {
+.more-help {
+  margin: 0.35rem 0 0.55rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.suite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.65rem;
+}
+
   margin-top: 0.45rem;
   padding-top: 0.4rem;
   border-top: 1px solid var(--line);
