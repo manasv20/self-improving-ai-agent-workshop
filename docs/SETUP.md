@@ -11,9 +11,12 @@ You'll need Git, Python **3.11 or newer**, and LM Studio with a local chat model
 ```bash
 git clone https://github.com/manasv20/self-improving-ai-agent-workshop.git
 cd self-improving-ai-agent-workshop
+ls pyproject.toml
 python3 --version
 python3 -m venv .venv
 ```
+
+`ls pyproject.toml` must print that filename. If it errors, you are one level above the repo — cloning into a folder that already carries the repo's name makes the two levels look identical in your shell prompt. Running the next steps there ends in `does not appear to be a Python project: neither 'setup.py' nor 'pyproject.toml' found`. `cd` into the repo folder and start again from `python3 -m venv`.
 
 Activate the environment on macOS or Linux:
 
