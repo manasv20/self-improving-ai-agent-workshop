@@ -8,6 +8,27 @@ A customer asks ParcelCo for help. The agent reads the policy, writes a reply, a
 
 ## First, handle one ticket
 
+```text
+retrieve → generate → evaluate → heal? → reflect (suite) → keep/revert
+```
+
+A frozen local LLM (Qwen) answers ParcelCo tickets. A Python checklist grades replies. If a reply fails, the **same loop** retries (heal). When we run the loop across many tickets, **reflect** writes lessons and a **gate** keeps them only if scores improve.
+
+The suite gate is implemented by the CLI `improve` command. The dashboard's
+single-ticket/autonomous reflection path writes sanitized learn-set lessons
+immediately without a holdout evaluation; measure suite scores separately before
+claiming improvement from that path.
+
+**ParcelCo** is fictional. The product is the visible loop + proof.
+
+## What we are not doing
+
+- Not fine-tuning Qwen (Workshop 2 later)
+- Not “two separate systems” (heal vs improve) — one loop, different steps
+- Not LLM self-grading — checklist is the gate
+
+## The one loop
+
 ```mermaid
 flowchart LR
   T[Customer ticket] --> R[Retrieve policy and FAQ]

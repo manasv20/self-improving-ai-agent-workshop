@@ -11,7 +11,14 @@ from functools import lru_cache
 
 from parcelco.paths import CHROMA_DIR, FAQ_DIR, POLICY_PATH
 
-_COLLECTION = "parcelco_faq"
+# v2 indexes Nomic documents with the required task prefix.
+_COLLECTION = "parcelco_faq_v2"
+
+
+def _embedding_text(text: str, *, query: bool, model: str) -> str:
+    if "nomic-embed-text" in model.lower():
+        return f"{'search_query' if query else 'search_document'}: {text}"
+    return text
 
 
 def _load_docs() -> list[tuple[str, str]]:
@@ -55,10 +62,12 @@ def _chroma_retrieve(query: str, k: int = 4) -> list[str] | None:
             docs = _load_docs()
             texts = [body for _, body in docs]
             ids = [name for name, _ in docs]
-            vectors = emb.embed_documents(texts)
+            vectors = emb.embed_documents([
+                _embedding_text(text, query=False, model=emb.model) for text in texts
+            ])
             collection.add(ids=ids, documents=texts, embeddings=vectors)
 
-        qvec = emb.embed_query(query)
+        qvec = emb.embed_query(_embedding_text(query, query=True, model=emb.model))
         result = collection.query(query_embeddings=[qvec], n_results=k)
         docs = (result.get("documents") or [[]])[0]
         ids = (result.get("ids") or [[]])[0]
@@ -85,7 +94,9 @@ def rebuild_index() -> str:
         docs = _load_docs()
         texts = [body for _, body in docs]
         ids = [name for name, _ in docs]
-        vectors = emb.embed_documents(texts)
+        vectors = emb.embed_documents([
+            _embedding_text(text, query=False, model=emb.model) for text in texts
+        ])
         collection.add(ids=ids, documents=texts, embeddings=vectors)
         return f"indexed {len(docs)} docs in chroma"
     except Exception as e:

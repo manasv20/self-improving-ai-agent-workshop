@@ -16,6 +16,15 @@ Work in pairs if you like: one person drives, the other predicts what will happe
 
 **Goal:** separate the policy decision from the model's wording.
 
+If you will run the live agent, complete [LOCAL_SETUP.md](LOCAL_SETUP.md) first (Qwen3.5-4B + embeddings in LM Studio), then:
+
+```bash
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -e .
+cp -n .env.example .env
+python -m parcelco.doctor
+```
+
 Read [ParcelCo's policy](../parcelco/data/policy.md). Choose an action for each ticket before looking at its expected label:
 
 | Ticket | Customer's situation | Your action and reason |
@@ -178,3 +187,5 @@ Expected: `demo 28 19 47`, then `full 700 300 1000`. The dataset expansion scrip
 ## Before you leave
 
 Explain to your partner: what changed, what stayed fixed, how the evaluator works, and what the holdout score does **not** establish. Choose one improvement you would investigate next: phrase coverage, separate first-attempt scores, better-scoped lessons, or an untouched test set.
+
+For the code map of each loop step, see [IMPLEMENT_FOR_QWEN.md](../IMPLEMENT_FOR_QWEN.md). Use `python -m parcelco.cli improve --rounds 1 --suite demo` only when you want the batch keep/revert gate (not required for every exercise).

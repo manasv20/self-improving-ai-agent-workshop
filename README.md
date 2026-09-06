@@ -9,13 +9,18 @@ ParcelCo is a fictional delivery company. You'll use its policy, sample customer
 ## Join the session
 
 - **Following along?** Open the visual guide. You can do the prediction and scoring exercises without running a model.
-- **Running the demo?** Follow [Setup](docs/SETUP.md), then use the command below.
+- **Running the demo?** Follow [Setup](docs/SETUP.md) and [local model setup](docs/LOCAL_SETUP.md) (Qwen3.5-4B + embeddings in LM Studio), then use the commands below.
 - **Teaching?** Use the [facilitator notes](docs/SPEAKER_NOTES.md) and rehearse before the event.
 
-From the repository folder, with your virtual environment activated and LM Studio serving a chat model:
+From the checkout containing `pyproject.toml`:
 
 ```bash
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -e .
+cp -n .env.example .env
+python -m parcelco.doctor
 python -m parcelco.cli serve --suite demo
+# http://127.0.0.1:5050
 ```
 
 Open <http://127.0.0.1:5050>. Select a ticket, then click **Run this ticket**. The reference guide and the live dashboard are separate pages.

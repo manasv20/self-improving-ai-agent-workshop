@@ -2,7 +2,9 @@
 
 The original filename is kept for existing links. The workshop is implemented; this is a map of the reference solution, not a list of unfinished modules.
 
-Start with [the visual guide](docs/index.html), [setup](docs/SETUP.md), and [exercises](docs/WORKSHOP.md). The repo's scope is a support-agent workflow with frozen model weights. Fine-tuning is not implemented.
+Start with [the visual guide](docs/index.html), [setup](docs/SETUP.md), [local model setup](docs/LOCAL_SETUP.md), and [exercises](docs/WORKSHOP.md). The repo's scope is a support-agent workflow with frozen model weights. Fine-tuning is not implemented.
+
+**Project root:** the checkout directory containing `pyproject.toml`.
 
 ## Follow one ticket through the code
 
@@ -22,6 +24,7 @@ Start with [the visual guide](docs/index.html), [setup](docs/SETUP.md), and [exe
 | `parcelco/events.py`, `parcelco/history.py` | Event stream and SQLite round/event history. |
 | `parcelco/tracing.py` | Optional generation callbacks, stored scores, trace verification, and lesson annotations. |
 | `parcelco/cli.py` | `serve`, `baseline`, `improve`, and `reset` commands. |
+| `parcelco/doctor.py` | Local LM Studio / env sanity checks. |
 
 ## Entry points and memory effects
 
@@ -65,4 +68,12 @@ python -m http.server 8000 --bind 127.0.0.1 --directory docs
 
 Open the guide at <http://127.0.0.1:8000>. Check desktop and narrow screens, keyboard focus, the walkthrough, graph controls, exercise answers, copy buttons, presentation mode, and print preview. Teaching numbers must be explicitly labeled as examples, not run results. Keep the guide usable without network assets or JavaScript for its core reading content.
 
-Read [Setup](docs/SETUP.md) for live model checks. Tests use local fixtures/mocks and do not establish model quality. A kept round or a visible heal is not required for a documentation PR to pass validation.
+Read [Setup](docs/SETUP.md) and [local setup](docs/LOCAL_SETUP.md) for live model checks. Default model: **Qwen3.5-4B** via LM Studio. Tests use local fixtures/mocks and do not establish model quality. A kept round or a visible heal is not required for a documentation PR to pass validation.
+
+| Role | Piece |
+|---|---|
+| Worker | LangGraph generate (+ RAG) |
+| Evaluator | Python checklist |
+| Memory | `learnings.md` + prompt versions |
+| Termination | max heal / max outer rounds |
+| Tracing | LangFuse (optional) |

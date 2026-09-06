@@ -4,7 +4,7 @@ For guests who are watching rather than working through exercises. Use [the full
 
 ## Prepare
 
-Follow [Setup](SETUP.md), rehearse your model, and open the visual guide next to the dashboard:
+Follow [Setup](SETUP.md) (model load: [LOCAL_SETUP.md](LOCAL_SETUP.md)), rehearse your model, and open the visual guide next to the dashboard:
 
 ```bash
 python -m parcelco.cli serve --suite demo
