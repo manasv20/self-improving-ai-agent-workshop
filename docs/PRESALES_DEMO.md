@@ -1,86 +1,37 @@
-# Pre-sales / stakeholder demo (optional)
+# A 15-minute walkthrough
 
-This is a **short show path** if buyers sit in — the primary format is still the **build-along workshop** ([WORKSHOP.md](WORKSHOP.md)).
+For guests who are watching rather than working through exercises. Use [the full workshop](WORKSHOP.md) for the teaching session and [facilitator notes](SPEAKER_NOTES.md) for preparation.
 
-## Story in one line
+## Prepare
 
-> “We don’t just call an LLM — we run a **visible harness**: LangChain for tools/model I/O, LangGraph for the loop, a hard checklist evaluator, LangFuse for traces, then an outer improve loop that only **keeps** changes that raise scores.”
-
-## Screen layout (what buyers should see)
-
-| Panel | What you say |
-|---|---|
-| **Stack strip** (top) | “These are the productized layers — watch them light up.” |
-| **LangGraph nodes** | “Inner loop: retrieve → generate → evaluate → heal.” |
-| **Activity feed** | “Narration of each layer as it fires.” |
-| **Scoreboard + chart** | “Proof: Part A learn set, Part B holdout — bigger suite so lift is visible.” |
-| **Where it was → where it is** | “Same numbers, framed as before/after for the buyer.” |
-| **History** | “Audit log of keep vs revert.” |
-| **Inspector** | “One ticket’s draft + checklist + retrieved docs.” |
-| **LangFuse** (browser tab, optional) | “Same run as nested spans / cost / prompt version.” |
-
-## Click path
-
-### 1) Warm-up — Demo one ticket (~60–90s)
-
-1. Open http://127.0.0.1:5050  
-2. Click **Demo one ticket**  
-3. Point at strip as it lights: **Click → LangChain → LangGraph → Evaluator** (+ **LangFuse** if keys set)  
-4. Open inspector: draft, `ACTION:` line, pass/fail  
-
-**Talk track:** “Customer asks for a refund. LangChain pulls policy. Qwen drafts. Checklist grades — not the model grading itself. If it fails, LangGraph heals and retries.”
-
-### 2) Baseline (~3–6 min on demo suite; longer on full)
-
-For a **live** room: start with `PARCELCO_SUITE=demo` (20A / 15B).  
-For a **proof** recording or overnight run: `PARCELCO_SUITE=full` (700A / 300B).
-
-1. Click **Run baseline**  
-2. When done, read **Part A** and **Part B** rates — then point at **Where it was**  
-
-**Talk track:** “Cold harness on a labeled suite. Holdout exists so we can’t fake improvement by memorizing the train tickets. Full catalog is 1000 tickets; we can run the core 35 live.”
-
-### 3) Improve loop (~5–8 min on demo)
-
-1. Set rounds to **2**  
-2. Click **Start improve loop**  
-3. When **Improve** lights and history shows **kept/reverted**, pause on **Where it is** + **Lift**  
-
-**Talk track:** “Outer loop writes lessons, re-scores. We only keep if Part A rises and Part B doesn’t collapse. That’s the flywheel you’d put in production governance — before vs after, not vibes.”
-
-### 4) LangFuse tab (if configured)
-
-1. Open LangFuse project  
-2. Find the latest trace for a generate call  
-3. Show nested spans: retrieve context → LLM → score  
-
-**Talk track:** “Observability is first-class — every sales engineer / risk reviewer can audit.”
-
-If LangFuse keys are empty, say: “Tracing hooks are wired; we turn them on with keys — strip shows optional/off.”
-
-## What not to claim
-
-- Don’t say the **model weights** improved — say the **harness / memory / prompt** improved.  
-- Don’t hide slow local 4B latency — frame it as “runs on your VPC / laptop.”  
-- Workshop 2 (train an SLM) is a **follow-on**, not this demo.
-
-## Setup checklist
+Follow [Setup](SETUP.md) (model load: [LOCAL_SETUP.md](LOCAL_SETUP.md)), rehearse your model, and open the visual guide next to the dashboard:
 
 ```bash
-# LM Studio: Qwen loaded on :1234
-# From the checkout containing pyproject.toml; complete LOCAL_SETUP.md first.
-source .venv/bin/activate
-# Live room: demo suite. Full evaluation: explicitly use --suite full.
 python -m parcelco.cli serve --suite demo
 ```
 
-Optional `.env`:
-```
-PARCELCO_SUITE=full   # or demo
-```
+The demo contains **47 tickets: 28 learn and 19 holdout**. The full catalog contains 1,000: 700 learn and 300 holdout. Use measured rehearsal timings, not promised suite runtimes.
 
-```
-LANGFUSE_PUBLIC_KEY=...
-LANGFUSE_SECRET_KEY=...
-LANGFUSE_HOST=https://cloud.langfuse.com
-```
+## Walkthrough
+
+| Time | Show | Explain |
+|---|---|---|
+| 0–3 min | A01 and the policy | “A damaged delivery within 30 days is eligible. Let's see whether the reply follows the rule.” |
+| 3–7 min | **Run this ticket**, reply, checklist, and **Heal trail** | “The checker gives specific feedback. A retry uses that feedback, up to a limit.” |
+| 7–10 min | A learn-set **Reflect lesson** and the **Memory** tab | “This path saves a lesson immediately. It does not measure whether the whole suite improved.” |
+| 10–13 min | The guide's gate graph or completed batch history | “The batch action tests a candidate on both sets and keeps it only if both thresholds pass.” |
+| 13–15 min | One limitation and questions | “The scores include label-assisted retries. An untouched test set and broader quality checks would be needed for stronger claims.” |
+
+If a model reply passes immediately, use the guide's labeled, constructed retry example. If using recorded batch results, name the suite, model, retry settings, and memory starting point. Do not present the guide's invented graph values as measured results.
+
+## If there is time for a live batch
+
+Expand **Optional · suite proof (Score / Learn / Reset)**, click **Score suite**, then set rounds to **1** and click **Learn + keep/revert**. It runs its own starting baseline and then evaluates the proposed memory; allow enough time for both passes.
+
+Read **kept/reverted** beside the scores. A rejected candidate stays in history for inspection but is not the accepted memory at normal completion. By default, A must gain at least five percentage points and B may drop no more than five points relative to the last accepted state.
+
+Optional: open a Langfuse trace to inspect model calls and stored checklist scores. Tracing records evidence; the Python checklist makes the policy pass/fail decision.
+
+## The claim this demo supports
+
+The repo demonstrates a workflow that drafts, checks, retries, and changes text instructions. It makes some failures and acceptance decisions inspectable. It does not fine-tune the model, guarantee improvement, establish that a holdout is untouched during repair, or execute real customer refunds.
