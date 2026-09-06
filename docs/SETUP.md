@@ -32,20 +32,30 @@ The last command creates `.env` only if it is missing. Keep that file local. All
 
 ## 2. Connect a local model
 
-In LM Studio, download and load a Qwen chat model that fits your machine. Start the local server from its Developer tab. The workshop expects `http://127.0.0.1:1234/v1` unless you configure another address.
+In LM Studio, download and load a Qwen chat model that fits your machine. A tested Apple-silicon profile is **Qwen3.5-4B GGUF Q4_K_M** with **Nomic Embed Text v1.5 GGUF Q4_K_M** for retrieval. This is a useful starting point for a 16 GB Mac; other local models and hardware can work when their API identifiers are configured correctly.
+
+The model files are available from the [Qwen3.5 GGUF repository](https://huggingface.co/lmstudio-community/Qwen3.5-4B-GGUF) and the [Nomic embedding repository](https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF). LM Studio's bundled `lms` command can download them:
+
+```bash
+lms get https://huggingface.co/lmstudio-community/Qwen3.5-4B-GGUF@Q4_K_M --gguf -y
+lms get https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF@Q4_K_M --gguf -y
+```
+
+Load the chat model and embedding model in LM Studio, then start the local server from its Developer tab. The workshop expects `http://127.0.0.1:1234/v1` unless you configure another address. You can start the server from a terminal with `lms server start --port 1234` when the bundled CLI is available.
 
 Open <http://127.0.0.1:1234/v1/models> and copy your chat model's `id`. **A model's display name is not necessarily its API identifier.** Replace the example identifier in `.env`:
 
 ```dotenv
 OPENAI_BASE_URL=http://127.0.0.1:1234/v1
 OPENAI_API_KEY=lm-studio
-PARCELCO_MODEL=replace-with-your-chat-model-id
+PARCELCO_MODEL=qwen3.5-4b
+PARCELCO_EMBED_MODEL=text-embedding-nomic-embed-text-v1.5
 PARCELCO_SUITE=demo
 LANGFUSE_PUBLIC_KEY=
 LANGFUSE_SECRET_KEY=
 ```
 
-`lm-studio` is a placeholder for a local server without authentication. If you enabled server authentication, use your local server token instead. Leave both Langfuse keys empty for the first run, even if the example file contains demo values.
+`qwen3.5-4b` is the tested chat-model identifier for the profile above. If LM Studio shows a different ID, use the exact value returned by its API. `lm-studio` is a placeholder for a local server without authentication; use your local server token if authentication is enabled. Leave both Langfuse keys empty for the first run.
 
 Optional: load an embedding model and set `PARCELCO_EMBED_MODEL` to its API identifier. Embeddings turn text into numeric vectors for retrieval. If embeddings or Chroma are unavailable, this repo falls back to keyword matching; the chat model is still required.
 

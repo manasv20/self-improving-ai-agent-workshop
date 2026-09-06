@@ -101,14 +101,15 @@ source .venv/bin/activate
 python -m pip install -e .
 python -c "from pathlib import Path; p=Path('.env'); p.exists() or p.write_text(Path('.env.example').read_text())"</code></pre></div>
 <p class="small">Already cloned? Start at the environment step from the repo folder. Windows: use <code>.venv\Scripts\Activate.ps1</code> in PowerShell. <a href="SETUP.md">Full setup instructions</a></p></div></div>
-<div class="setup-step"><span class="step-circle">2</span><div><h3>Connect LM Studio</h3><p>Load a Qwen chat model that fits your machine. Start LM Studio's local server, open <a href="http://127.0.0.1:1234/v1/models" target="_blank" rel="noopener">its model list</a>, and copy the chat model's exact <code>id</code> into <code>.env</code>.</p>
+<div class="setup-step"><span class="step-circle">2</span><div><h3>Connect LM Studio</h3><p>Load a Qwen chat model that fits your machine. A tested Apple-silicon profile is <strong>Qwen3.5-4B GGUF Q4_K_M</strong> with <strong>Nomic Embed Text v1.5 GGUF Q4_K_M</strong> for retrieval. Start LM Studio's local server, open <a href="http://127.0.0.1:1234/v1/models" target="_blank" rel="noopener">its model list</a>, and copy the chat model's exact <code>id</code> into <code>.env</code>.</p>
 <div class="codebox"><div class="code-label"><span>.env · replace the model identifier</span><button type="button" class="copy js-only" data-copy="env-code">Copy</button></div><pre id="env-code"><code>OPENAI_BASE_URL=http://127.0.0.1:1234/v1
 OPENAI_API_KEY=lm-studio
-PARCELCO_MODEL=replace-with-your-chat-model-id
+PARCELCO_MODEL=qwen3.5-4b
+PARCELCO_EMBED_MODEL=text-embedding-nomic-embed-text-v1.5
 PARCELCO_SUITE=demo
 LANGFUSE_PUBLIC_KEY=
 LANGFUSE_SECRET_KEY=</code></pre></div>
-<p class="small">Leave tracing keys empty for your first run. The API key above is a local-server placeholder; use your token if server authentication is enabled. Embeddings are optional: retrieval falls back to keywords.</p></div></div>
+<p class="small">Use the exact model ID returned by <code>/v1/models</code> if yours differs. Leave tracing keys empty for your first run. The API key above is a local-server placeholder; use your token if server authentication is enabled. Embeddings are optional: retrieval falls back to keywords.</p><p class="small">If LM Studio's bundled CLI is available, you can start the server with <code>lms server start --port 1234</code>. The model files and download commands are in <a href="SETUP.md#2-connect-a-local-model">the full setup guide</a>.</p></div></div>
 <div class="setup-step"><span class="step-circle">3</span><div><h3>Check, then open the dashboard</h3>
 <div class="codebox"><div class="code-label"><span>Terminal · environment activated</span><button type="button" class="copy js-only" data-copy="run-code">Copy</button></div><pre id="run-code"><code>python -m unittest discover -s tests -v
 python -c "from parcelco.llm import chat_model; print(chat_model().invoke('Reply with pong.').content)"
