@@ -67,8 +67,8 @@
         "Big suite (700+300) measures lift. Per-ticket Reflect already learns on learn-set runs.",
       ],
       done: [
-        "Done — Reflect may have updated learnings.md",
-        "Check “What Reflect learned” and expand Memory. Score suite to see lift on the big set.",
+        "Done — lesson is in the Reflect panel",
+        "Read the live lesson on the right. It was also appended to learnings.md and scored on the LangFuse trace.",
       ],
     };
     const [title, body] = copy[step] || copy.pick;
@@ -104,8 +104,35 @@
     if (n && text) n.textContent = String(text).slice(0, 220);
   }
 
+  function showReflectLesson(text, phase) {
+    const box = el("reflect-lesson");
+    const phaseEl = el("reflect-phase");
+    const stage = el("stage-reflect");
+    if (phaseEl) {
+      const labels = {
+        start: "drafting…",
+        draft: "draft ready",
+        kept: "kept → learnings.md",
+        blocked: "blocked",
+        empty: "nothing to learn",
+      };
+      phaseEl.textContent = labels[phase] || phase || "live";
+    }
+    if (stage) {
+      stage.classList.toggle("writing", phase === "start" || phase === "draft");
+      stage.classList.toggle("kept", phase === "kept");
+    }
+    if (box && text != null) {
+      box.textContent = text || (phase === "start" ? "Drafting lesson from checklist…" : box.textContent);
+    }
+    if (text) {
+      const first = String(text).split("\n").find((l) => l.trim()) || text;
+      setNodeBody("reflect", String(first).replace(/^-+\s*/, "").slice(0, 160));
+    }
+  }
+
   function openRailPanel(_id) {
-    /* live-stage is always visible in the demo shell */
+    /* live-stage is always visible */
   }
 
   async function loadTickets() {
@@ -475,6 +502,11 @@
       highlightNode("reflect");
       setNodeBody("reflect", ev.stack_detail || "Writing policy lessons into learnings.md…");
       setTeach(ev.stack === "autonomous" ? "done" : "learn");
+      const ins = ev.inspector || {};
+      if (ins.phase === "start") showReflectLesson("Drafting lesson from checklist signals…", "start");
+      if (ins.lesson && (ins.phase === "draft" || ins.phase === "kept" || ins.phase === "blocked")) {
+        showReflectLesson(ins.learnings_snippet || ins.lesson, ins.phase);
+      }
     }
     if (ev.node === "suite") {
       highlightNode("suite");
@@ -487,21 +519,18 @@
           "reflect",
           ev.kept ? "KEEP — safe lesson appended to learnings.md" : (ev.stack_detail || "REVERT — no memory write")
         );
+        const ins = ev.inspector || {};
+        if (ins.lesson) {
+          showReflectLesson(ins.learnings_snippet || ins.lesson, ins.phase || (ev.kept ? "kept" : "blocked"));
+        }
       } else {
         setNodeBody("gate", ev.stack_detail || (ev.kept ? "KEEP" : "REVERT"));
-      }
-      if (ev.inspector && ev.inspector.lesson) {
-        const box = el("reflect-lesson");
-        if (box) box.textContent = ev.inspector.lesson;
-        openRailPanel("panel-reflect");
       }
     }
 
     if (ev.inspector && ev.inspector.autonomous_lesson) {
-      const box = el("reflect-lesson");
-      if (box) box.textContent = ev.inspector.autonomous_lesson;
+      showReflectLesson(ev.inspector.autonomous_lesson, "kept");
       setNodeBody("reflect", "Lesson written → learnings.md");
-      openRailPanel("panel-reflect");
     }
 
     if (ev.type === "ticket_eval") {

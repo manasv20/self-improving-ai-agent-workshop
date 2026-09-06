@@ -427,8 +427,9 @@ def reflect_after_ticket(ticket, result: TicketRunResult) -> dict:
             "status": "reflect",
             "node": "reflect",
             "stack": "autonomous",
-            "stack_detail": "Reflect: writing checklist-based policy lessons…",
+            "stack_detail": "Reflect: drafting policy lessons from checklist…",
             "ticket_id": tid,
+            "inspector": {"lesson": "", "phase": "start", "ticket_id": tid},
         }
     )
 
@@ -441,6 +442,8 @@ def reflect_after_ticket(ticket, result: TicketRunResult) -> dict:
                 "stack_detail": "REVERT — Reflect produced no safe lesson (memory unchanged)",
                 "kept": False,
                 "ticket_id": tid,
+                "node": "reflect",
+                "inspector": {"lesson": "(no safe lesson)", "phase": "empty", "ticket_id": tid},
             }
         )
         return {"reflected": False, "reason": "rejected", "lesson": ""}
@@ -454,7 +457,6 @@ def reflect_after_ticket(ticket, result: TicketRunResult) -> dict:
         if isinstance(s, dict) and s.get("name") == "checklist_passed" and s.get("comment")
     ]
     if checklist_comments and "30-day" in " ".join(checklist_comments).lower():
-        # Reinforce that Reflect is reading the LangFuse score trail
         if "30-day" not in lesson.lower():
             lesson = (
                 lesson
@@ -462,12 +464,27 @@ def reflect_after_ticket(ticket, result: TicketRunResult) -> dict:
             )
             lesson = _sanitize_lesson_block(lesson)
 
-    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    before = read_learnings()
-    after = _append_learnings(
-        lesson,
-        heading=f"Autonomous lesson ({stamp}) · learn-set",
+    # Live: push draft lesson to UI before writing disk
+    publish(
+        {
+            "type": "step",
+            "node": "reflect",
+            "stack": "autonomous",
+            "stack_detail": "Reflect: lesson draft ready — writing to learnings.md…",
+            "ticket_id": tid,
+            "passed": result.passed,
+            "inspector": {
+                "lesson": lesson,
+                "phase": "draft",
+                "ticket_id": tid,
+            },
+        }
     )
+
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    heading = f"Autonomous lesson ({stamp}) · learn-set"
+    before = read_learnings()
+    after = _append_learnings(lesson, heading=heading)
     if after == before:
         publish(
             {
@@ -476,7 +493,8 @@ def reflect_after_ticket(ticket, result: TicketRunResult) -> dict:
                 "stack_detail": "REVERT — lesson blocked by poison filter",
                 "kept": False,
                 "ticket_id": tid,
-                "inspector": {"lesson": lesson, "source": "blocked", "ticket_id": tid},
+                "node": "reflect",
+                "inspector": {"lesson": lesson, "phase": "blocked", "source": "blocked", "ticket_id": tid},
             }
         )
         return {"reflected": False, "reason": "blocked", "lesson": lesson}
@@ -485,6 +503,9 @@ def reflect_after_ticket(ticket, result: TicketRunResult) -> dict:
 
     annotate_lesson_on_trace(result.trace_id, lesson, kept=True)
 
+    # Snippet of what landed in the file (for live panel)
+    file_snippet = f"## {heading}\n{lesson}"
+
     publish(
         {
             "type": "gate",
@@ -492,8 +513,11 @@ def reflect_after_ticket(ticket, result: TicketRunResult) -> dict:
             "stack_detail": "KEEP — lesson → learnings.md + LangFuse trace",
             "kept": True,
             "ticket_id": tid,
+            "node": "reflect",
             "inspector": {
                 "lesson": lesson,
+                "learnings_snippet": file_snippet,
+                "phase": "kept",
                 "source": "autonomous_reflect",
                 "ticket_id": tid,
                 "langfuse_evidence": lf_ev,

@@ -1193,6 +1193,7 @@ tr.row-reverted { opacity: 0.7; }
   margin-bottom: 0.65rem;
 }
 
+.lf-evidence {
   margin-top: 0.45rem;
   padding-top: 0.4rem;
   border-top: 1px solid var(--line);
@@ -1210,3 +1211,19 @@ tr.row-reverted { opacity: 0.7; }
 .lf-evidence.ok strong { color: var(--good); }
 .lf-evidence.bad strong { color: var(--bad); }
 .lf-evidence p { margin: 0.15rem 0; line-height: 1.35; }
+
+.stage-reflect.writing {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.stage-reflect.kept {
+  border-color: color-mix(in srgb, var(--good) 45%, var(--line));
+}
+.stage-reflect.writing .reflect-draft::after {
+  content: "▋";
+  animation: blink 1s step-end infinite;
+  color: var(--accent);
+}
+@keyframes blink {
+  50% { opacity: 0; }
+}
