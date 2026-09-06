@@ -38,8 +38,12 @@ def build_heal_repair_brief(
 
     if missing:
         fixes.append(
-            "- Include these phrases exactly (case-insensitive ok): "
+            "- Include these phrases EXACTLY in the customer message body "
+            "(copy/paste these substrings verbatim, case-insensitive ok): "
             + ", ".join(repr(m) for m in missing)
+        )
+        fixes.append(
+            "- Do not paraphrase them away — the harness searches for these exact strings."
         )
     if forbidden:
         fixes.append(

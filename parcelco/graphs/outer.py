@@ -148,7 +148,7 @@ def _cluster_lessons(failed: list[TicketRunResult]) -> str:
         return "\n".join(summary_lines)
 
 
-# Lines that would teach harness jargon or invent fake "system recovery" copy.
+# Lines / themes that must never be kept in learnings.md (demo poison).
 _POISON_LESSON = (
     "failed after",
     "after 2 heal",
@@ -163,17 +163,27 @@ _POISON_LESSON = (
     "system automatically",
     "internal process",
     "checklist failure",
+    "policy checklist",
     "without mentioning the term",
     "harness",
     "heal(",
     " heal",
     "heal,",
     "heals",
+    "failed state",
+    "device is",
+    "the device",
+    "the repair",
+    "repair was",
+    "repair failed",
+    "repair did",
+    "local support team",
+    "next level of support",
 )
 
 
 def _sanitize_lesson_block(block: str) -> str:
-    """Drop Reflect lines that would teach the model to leak harness jargon."""
+    """Drop Reflect lines that would poison the next Generate prompt."""
     kept: list[str] = []
     for line in block.splitlines():
         low = line.lower()
@@ -202,16 +212,133 @@ def _first_fail_attempt(result: TicketRunResult) -> dict:
     return {}
 
 
-def _lesson_from_single(result: TicketRunResult) -> str:
-    """Write durable lessons from one learn-set ticket (no ticket ids)."""
+def _collect_signals(result: TicketRunResult) -> tuple[str, list[str], list[str], str | None]:
+    """Expected action + union of missing/forbidden across failed attempts."""
     c = result.checklist
     first_fail = _first_fail_attempt(result)
-    expected_action = first_fail.get("expected_action") or c.detected_action or "inform"
-    missing = first_fail.get("missing") or list(c.missing or [])
-    forbidden = first_fail.get("forbidden_hits") or list(c.forbidden_hits or [])
+    expected = (
+        first_fail.get("expected_action")
+        or getattr(c, "expected_action", None)
+        or c.detected_action
+        or "inform"
+    )
+    missing: list[str] = []
+    forbidden: list[str] = []
+    seen_m: set[str] = set()
+    seen_f: set[str] = set()
+    for a in result.attempts or []:
+        if not isinstance(a, dict) or a.get("passed"):
+            continue
+        for m in a.get("missing") or []:
+            key = str(m).lower()
+            if key not in seen_m:
+                seen_m.add(key)
+                missing.append(str(m))
+        for f in a.get("forbidden_hits") or []:
+            key = str(f).lower()
+            if key not in seen_f:
+                seen_f.add(key)
+                forbidden.append(str(f))
+    for m in c.missing or []:
+        key = str(m).lower()
+        if key not in seen_m:
+            seen_m.add(key)
+            missing.append(str(m))
+    for f in c.forbidden_hits or []:
+        key = str(f).lower()
+        if key not in seen_f:
+            seen_f.add(key)
+            forbidden.append(str(f))
     detected0 = first_fail.get("detected_action")
+    return str(expected), missing, forbidden, detected0
 
-    # Mechanical fix: reply was fine but ACTION line missing — no LLM needed.
+
+def _phrase_lesson(phrase: str) -> str:
+    p = phrase.strip()
+    low = p.lower()
+    if low == "30-day":
+        return (
+            '- When approving or denying a refund, cite the 30-day refund window '
+            'using the exact words "30-day" (e.g. "outside our 30-day refund window").'
+        )
+    if "business day" in low:
+        return (
+            '- When escalating, say a human specialist will follow up within 1 business day.'
+        )
+    if low == "transit":
+        return (
+            '- If the package is already in transit, say it cannot be cancelled, '
+            'mention transit, and offer refuse-delivery or redirect; end with ACTION: inform.'
+        )
+    if low == "48":
+        return '- For shipping delays, mention the 48-hour SLA threshold when policy requires it.'
+    if low == "warehouse":
+        return '- For cancellations, mention warehouse scan when explaining cancel vs in-transit rules.'
+    return f'- Include the exact phrase "{p}" in the customer-facing reply.'
+
+
+def _template_lesson(
+    *,
+    expected_action: str,
+    missing: list[str],
+    forbidden: list[str],
+    detected0: str | None,
+    passed: bool,
+) -> str:
+    """Deterministic policy lessons — no LLM (demo-safe, no invented jargon)."""
+    bullets: list[str] = []
+    det = (detected0 or "").lower() or None
+    want = expected_action.lower()
+
+    if det != want:
+        bullets.append(
+            f"- End every reply with a single line `ACTION: {want}` "
+            f"(do not use {det or 'a missing ACTION tag'} for this case)."
+        )
+    else:
+        bullets.append(f"- End every reply with a single line `ACTION: {want}`.")
+
+    for m in missing:
+        bullets.append(_phrase_lesson(m))
+
+    for f in forbidden:
+        bullets.append(f'- Do not say "{f}" in the customer reply.')
+
+    if want == "deny" and not any(m.lower() == "30-day" for m in missing):
+        # Still reinforce deny wording when action was wrong even if phrase eventually present
+        if det and det != "deny":
+            bullets.append(
+                '- For refunds past the window: politely deny and cite the 30-day policy; '
+                "do not escalate unless the customer adds a legal/safety exception request."
+            )
+
+    if want == "escalate":
+        bullets.append(
+            "- Escalation replies stay customer-facing: acknowledge, cite relevant policy "
+            '(e.g. "30-day" when refunds are involved), promise specialist follow-up within '
+            "1 business day, then ACTION: escalate."
+        )
+
+    if not passed and not missing and det == want:
+        bullets.append(
+            "- Re-read retrieved policy/FAQ and mirror required wording before sending."
+        )
+
+    # Dedupe while preserving order
+    out: list[str] = []
+    seen: set[str] = set()
+    for b in bullets:
+        if b not in seen:
+            seen.add(b)
+            out.append(b)
+    return "\n".join(out)
+
+
+def _lesson_from_single(result: TicketRunResult) -> str:
+    """Durable lessons from one learn-set ticket — templates only (demo-safe)."""
+    expected, missing, forbidden, detected0 = _collect_signals(result)
+
+    # Mechanical: only missing ACTION tag
     if (
         result.passed
         and result.heal_count > 0
@@ -221,61 +348,20 @@ def _lesson_from_single(result: TicketRunResult) -> str:
     ):
         return (
             f"- Always end every customer reply with a single line "
-            f"`ACTION: {expected_action}` (refund|deny|escalate|inform).\n"
+            f"`ACTION: {expected}` (refund|deny|escalate|inform).\n"
             f"- Put the ACTION tag after the customer-facing text, never inside it."
         )
 
-    pattern = [
-        f"- Final outcome: {'PASS' if result.passed else 'FAIL'}",
-        f"- Expected ACTION tag: {expected_action}",
-        f"- First attempt ACTION tag: {detected0 or 'missing'}",
-        f"- Missing customer phrases: {', '.join(missing) or 'none'}",
-        f"- Forbidden phrase hits: {', '.join(forbidden) or 'none'}",
-    ]
-    if result.passed and result.heal_count > 0:
-        task = (
-            "The first reply failed a policy checklist; a rewrite then passed. "
-            "Write 2-4 durable bullets so the agent passes on the first try. "
-            "Focus on: correct ACTION tag, required customer-visible policy phrases "
-            "(e.g. 30-day, transit, 1 business day), and escalate/deny/refund wording. "
-            "Never mention ticket IDs. "
-            "Do NOT write about heals, retries, checklists, automatic recovery, or internal systems — "
-            "those words must never appear in lessons or customer replies."
-        )
-    elif not result.passed:
-        task = (
-            "The ticket still failed the policy checklist. Write 3-6 durable corrective bullets. "
-            "Focus on correct ACTION tags and required customer-visible policy phrases. "
-            "Never mention ticket IDs. "
-            "Do NOT invent phrases about failed repairs, heals, retries, or automatic recovery."
-        )
-    else:
+    if result.passed and result.heal_count == 0:
         return ""
 
-    try:
-        llm = chat_model(temperature=0.2)
-        msg = llm.invoke(
-            [
-                {
-                    "role": "system",
-                    "content": (
-                        "You write short durable ParcelCo support lessons as markdown bullets only. "
-                        "Each bullet teaches customer-facing policy language or the ACTION tag format. "
-                        "Never mention ticket IDs. "
-                        "Never mention heals, retries, checklists, attempts, harnesses, "
-                        "automatic recovery, or internal failures."
-                    ),
-                },
-                {"role": "user", "content": task + "\n\nSignals:\n" + "\n".join(pattern)},
-            ]
-        )
-        return (getattr(msg, "content", None) or str(msg)).strip()
-    except Exception:
-        return (
-            f"- Always end replies with `ACTION: {expected_action}`.\n"
-            f"- Include required policy phrases when relevant: "
-            f"{', '.join(missing) if missing else 'follow retrieved policy/FAQ'}."
-        )
+    return _template_lesson(
+        expected_action=expected,
+        missing=missing,
+        forbidden=forbidden,
+        detected0=detected0,
+        passed=result.passed,
+    )
 
 
 def reflect_after_ticket(ticket, result: TicketRunResult) -> dict:
@@ -341,25 +427,48 @@ def reflect_after_ticket(ticket, result: TicketRunResult) -> dict:
             "status": "reflect",
             "node": "reflect",
             "stack": "autonomous",
-            "stack_detail": "LLM writing lessons into learnings.md…",
+            "stack_detail": "Reflect: writing checklist-based policy lessons…",
             "ticket_id": tid,
         }
     )
 
-    lesson = _lesson_from_single(result)
+    lesson = _sanitize_lesson_block(_lesson_from_single(result))
     if not lesson:
-        return {"reflected": False, "reason": "empty", "lesson": ""}
+        publish(
+            {
+                "type": "gate",
+                "stack": "autonomous",
+                "stack_detail": "REVERT — Reflect produced no safe lesson (memory unchanged)",
+                "kept": False,
+                "ticket_id": tid,
+            }
+        )
+        return {"reflected": False, "reason": "rejected", "lesson": ""}
 
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    _append_learnings(
+    before = read_learnings()
+    after = _append_learnings(
         lesson,
         heading=f"Autonomous lesson ({stamp}) · learn-set",
     )
+    if after == before:
+        publish(
+            {
+                "type": "gate",
+                "stack": "autonomous",
+                "stack_detail": "REVERT — lesson blocked by poison filter",
+                "kept": False,
+                "ticket_id": tid,
+                "inspector": {"lesson": lesson, "source": "blocked", "ticket_id": tid},
+            }
+        )
+        return {"reflected": False, "reason": "blocked", "lesson": lesson}
+
     publish(
         {
             "type": "gate",
             "stack": "autonomous",
-            "stack_detail": "KEEP (autonomous online learn — local Qwen)",
+            "stack_detail": "KEEP — safe policy lesson appended to learnings.md",
             "kept": True,
             "ticket_id": tid,
             "inspector": {"lesson": lesson, "source": "autonomous_reflect", "ticket_id": tid},
