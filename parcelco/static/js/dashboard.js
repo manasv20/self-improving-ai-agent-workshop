@@ -210,6 +210,19 @@
     if (n) n.textContent = text;
   }
 
+  function openRailPanel(id) {
+    const panel = el(id);
+    if (panel) panel.open = true;
+  }
+
+  function escapeHtml(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
   function setHealingPulse(on) {
     const node = document.querySelector('.node[data-node="heal"]');
     if (node) node.classList.toggle("healing", !!on);
@@ -221,19 +234,20 @@
     const list = attempts || [];
     if (!list.length) {
       ol.innerHTML = `<li class="empty">No attempts yet — run the loop.</li>`;
-      setHealStatus("If the checklist fails, Heal retries (up to 2). Each draft appears here.");
+      setHealStatus("If the checklist fails, Heal retries (up to 2). Expand to read every draft.");
       setHealingPulse(false);
       return;
     }
+    openRailPanel("panel-heal");
     const healsUsed = list.filter((a) => (a.heal_count_before || 0) > 0).length;
     const last = list[list.length - 1];
     const pending = opts && opts.willHeal;
     setHealStatus(
       pending
-        ? `FAIL on attempt ${last.attempt} — Heal is retrying with the checklist error…`
+        ? `FAIL on attempt ${last.attempt} — Heal is retrying… (${list.length} so far)`
         : last.passed
-          ? `PASS after ${list.length} attempt(s)${healsUsed ? ` · ${healsUsed} heal rewrite(s)` : " · no heal needed"}.`
-          : `Still FAIL after ${list.length} attempt(s)${healsUsed ? ` · ${healsUsed} heal(s) used` : ""} · max heals reached or stopped.`
+          ? `PASS after ${list.length} attempt(s)${healsUsed ? ` · ${healsUsed} heal rewrite(s)` : " · no heal needed"}`
+          : `Still FAIL after ${list.length} attempt(s)${healsUsed ? ` · ${healsUsed} heal(s) used` : ""} · max heals`
     );
     setHealingPulse(!!pending);
     for (const a of list) {
@@ -248,14 +262,23 @@
         ? `forbidden: ${(a.forbidden_hits || []).join(", ")}`
         : "";
       const why = [a.details, miss, forbid].filter(Boolean).join(" · ");
+      const draft = a.draft || "";
+      const preview = draft.length > 120 ? `${draft.slice(0, 120)}…` : draft;
       li.innerHTML = `
-        <div class="ht-head">
-          <span>${label}</span>
-          <span class="${a.passed ? "ok" : "bad"}">${a.passed ? "PASS" : "FAIL"}</span>
-        </div>
-        <div>action ${a.detected_action || "?"} → want ${a.expected_action || "?"}</div>
-        <div>${why || "—"}</div>
-        <pre class="ht-draft">${(a.draft || "").slice(0, 280)}</pre>`;
+        <details class="attempt-panel" ${a === last ? "open" : ""}>
+          <summary class="attempt-summary">
+            <span class="ht-head">
+              <span>${escapeHtml(label)}</span>
+              <span class="${a.passed ? "ok" : "bad"}">${a.passed ? "PASS" : "FAIL"}</span>
+            </span>
+            <span class="attempt-preview">${escapeHtml(preview || "—")}</span>
+          </summary>
+          <div class="attempt-body">
+            <div>action ${escapeHtml(a.detected_action || "?")} → want ${escapeHtml(a.expected_action || "?")}</div>
+            <div class="attempt-why">${escapeHtml(why || "—")}</div>
+            <pre class="ht-draft expanded">${escapeHtml(draft)}</pre>
+          </div>
+        </details>`;
       ol.appendChild(li);
     }
     if (pending) {
@@ -442,6 +465,7 @@
       if (ev.inspector && ev.inspector.lesson) {
         const box = el("reflect-lesson");
         if (box) box.textContent = ev.inspector.lesson;
+        openRailPanel("panel-reflect");
       }
     }
 
@@ -449,6 +473,7 @@
       const box = el("reflect-lesson");
       if (box) box.textContent = ev.inspector.autonomous_lesson;
       setNodeBody("reflect", "Lesson written → learnings.md");
+      openRailPanel("panel-reflect");
     }
 
     if (ev.type === "ticket_eval") {
@@ -463,7 +488,10 @@
       el("result-line").className = `result-line ${ev.passed ? "pass" : "fail"}`;
       if (ev.attempts) renderHealTimeline(ev.attempts, { willHeal });
       else if (ev.attempt) renderHealTimeline([ev.attempt], { willHeal });
-      if (ev.attempt && ev.attempt.draft) el("llm-draft").textContent = ev.attempt.draft;
+      if (ev.attempt && ev.attempt.draft) {
+        el("llm-draft").textContent = ev.attempt.draft;
+        openRailPanel("panel-draft");
+      }
       if (willHeal) {
         highlightNode("heal");
         setNodeBody("heal", "Queued — LLM will rewrite with checklist errors");
@@ -493,6 +521,7 @@
       if (ev.inspector.draft) {
         el("llm-draft").textContent = ev.inspector.draft;
         setNodeBody("generate", String(ev.inspector.draft).slice(0, 120));
+        openRailPanel("panel-draft");
       }
       if (ev.inspector.retrieved) {
         const docs = ev.inspector.retrieved;

@@ -190,21 +190,35 @@
         <div><span>Why</span><strong id="sel-notes">—</strong></div>
       </div>
 
-      <h2 class="mt">Heal trail</h2>
-      <p class="rail-help" id="heal-status">If the checklist fails, Heal retries (up to 2). Each draft appears here.</p>
-      <ol id="heal-timeline" class="heal-timeline">
-        <li class="empty">No attempts yet — run the loop.</li>
-      </ol>
+      <details class="rail-panel" id="panel-heal" open>
+        <summary class="rail-panel-summary">
+          <strong>Heal trail</strong>
+          <span id="heal-status">If the checklist fails, Heal retries (up to 2). Expand to read every draft.</span>
+        </summary>
+        <ol id="heal-timeline" class="heal-timeline">
+          <li class="empty">No attempts yet — run the loop.</li>
+        </ol>
+      </details>
 
-      <h2 class="mt">What Reflect learned</h2>
-      <pre id="reflect-lesson" class="llm-draft reflect-draft">Autonomous lessons from learn-set tickets show here.</pre>
+      <details class="rail-panel" id="panel-reflect" open>
+        <summary class="rail-panel-summary">
+          <strong>What Reflect learned</strong>
+          <span>Lessons written to learnings.md</span>
+        </summary>
+        <pre id="reflect-lesson" class="llm-draft reflect-draft">Autonomous lessons from learn-set tickets show here.</pre>
+      </details>
 
-      <h2 class="mt">What the LLM wrote</h2>
-      <pre id="llm-draft" class="llm-draft">Run the loop to see Qwen’s reply here.</pre>
-      <p id="result-line" class="result-line">Not run yet.</p>
-      <p id="lf-inspector-link-wrap" class="lf-link" hidden>
-        <a id="lf-inspector-link" href="#" target="_blank" rel="noopener">Open LangFuse trace ↗</a>
-      </p>
+      <details class="rail-panel" id="panel-draft" open>
+        <summary class="rail-panel-summary">
+          <strong>What the LLM wrote</strong>
+          <span>Final reply for this ticket</span>
+        </summary>
+        <pre id="llm-draft" class="llm-draft">Run the loop to see Qwen’s reply here.</pre>
+        <p id="result-line" class="result-line">Not run yet.</p>
+        <p id="lf-inspector-link-wrap" class="lf-link" hidden>
+          <a id="lf-inspector-link" href="#" target="_blank" rel="noopener">Open LangFuse trace ↗</a>
+        </p>
+      </details>
 
       <details class="more-details">
         <summary>Live log &amp; raw inspector</summary>

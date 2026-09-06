@@ -275,7 +275,7 @@ def _publish_ticket_result(ticket, result, reflected: dict | None = None) -> Non
         "autonomous": reflected,
     }
     if reflected.get("lesson"):
-        inspector["autonomous_lesson"] = reflected["lesson"][:1200]
+        inspector["autonomous_lesson"] = reflected["lesson"]
 
     publish(
         {
