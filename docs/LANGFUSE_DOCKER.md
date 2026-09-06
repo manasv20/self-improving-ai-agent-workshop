@@ -5,7 +5,7 @@ Langfuse is MIT open source. This workshop vendors the official compose stack un
 ## Start
 
 ```bash
-cd ~/Desktop/Self\ Improving\ AI\ Agent\ Workshop
+# From the checkout containing pyproject.toml.
 chmod +x scripts/start-langfuse.sh scripts/stop-langfuse.sh
 ./scripts/start-langfuse.sh
 ```
@@ -14,11 +14,16 @@ Or:
 
 ```bash
 cd docker/langfuse
+cp -n .env.example .env
 docker compose --env-file .env up -d
 ```
 
 UI: **http://localhost:3000**  
 Login: `workshop@parcelco.local` / `WorkshopDemo1!`
+
+The start script creates the missing Docker `.env` from the checked-in local
+demo template. Existing environments are preserved. All exposed ports bind to
+localhost; these sample credentials are for a local workshop only.
 
 ## Wire ParcelCo
 

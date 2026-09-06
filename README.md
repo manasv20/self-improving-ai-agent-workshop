@@ -8,11 +8,15 @@ Start here: **[docs/WORKSHOP.md](docs/WORKSHOP.md)** · **[docs/CONCEPT.md](docs
 
 ## Setup
 
+First follow [local setup](docs/LOCAL_SETUP.md) to install LM Studio, load
+Qwen3.5-4B and Nomic embeddings, and start the inference server.
+Run the commands below from the checkout containing `pyproject.toml`.
+
 ```bash
-cd ~/Desktop/Self\ Improving\ AI\ Agent\ Workshop
-python3 -m venv .venv && source .venv/bin/activate
+python3.12 -m venv .venv && source .venv/bin/activate
 pip install -e .
 cp -n .env.example .env
+python -m parcelco.doctor
 python -m parcelco.cli serve --suite demo
 # http://127.0.0.1:5050
 ```

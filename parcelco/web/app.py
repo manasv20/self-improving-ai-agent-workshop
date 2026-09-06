@@ -8,7 +8,7 @@ from flask import Flask, Response, jsonify, render_template, request
 from parcelco import history
 from parcelco.events import publish, snapshot, sse_stream, subscribe, unsubscribe
 from parcelco.graphs import outer
-from parcelco.llm import llm_base_url
+from parcelco.llm import llm_base_url, model_name
 from parcelco.paths import PKG
 
 _TEMPLATES = PKG / "templates"
@@ -54,7 +54,7 @@ def index():
     info = suite_info()
     return render_template(
         "dashboard.html",
-        model=os.getenv("PARCELCO_MODEL", "qwen3.8_4b_distilled_gguf"),
+        model=model_name(),
         base_url=llm_base_url(),
         suite=info,
         langfuse=tracing.status(),
@@ -77,7 +77,7 @@ def api_knowledge():
     return jsonify(
         {
             "stack": [
-                {"id": "qwen", "name": "Qwen (LM Studio)", "role": "Writes the reply", "detail": os.getenv("PARCELCO_MODEL", "qwen3.8_4b_distilled_gguf")},
+                {"id": "qwen", "name": "Qwen 3.5 4B (LM Studio)", "role": "Writes the reply", "detail": model_name()},
                 {"id": "langchain", "name": "LangChain", "role": "Model I/O + RAG glue", "detail": llm_base_url()},
                 {"id": "langgraph", "name": "LangGraph", "role": "Autonomous loop: retrieve→generate→evaluate→heal→reflect", "detail": "Reflect on every learn-set ticket; suite scores lift"},
                 {"id": "rag", "name": "RAG (policy + FAQ)", "role": "Frozen knowledge retrieve — not retrained", "detail": "Chroma or keyword fallback"},

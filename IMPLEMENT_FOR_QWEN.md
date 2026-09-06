@@ -6,7 +6,7 @@
 **Out of scope:** SLM fine-tuning (Workshop 2, later).
 
 **Project root:**  
-`/Users/manasverma/Desktop/Self Improving AI Agent Workshop/`
+The checkout directory containing `pyproject.toml`. See [local setup](docs/LOCAL_SETUP.md).
 
 ---
 
@@ -35,7 +35,7 @@ The modules below are implemented in this tree. Use them as the **reference solu
 | `parcelco/paths.py` | path helpers + dotenv |
 | `parcelco/models.py` | Pydantic models |
 | `parcelco/data/policy.md` + `faq/*.md` | ground truth |
-| `parcelco/data/tickets/all.jsonl` | 100 improve + 55 holdout; `tier: core` = demo 35 |
+| `parcelco/data/tickets/all.jsonl` | 700 improve + 300 holdout; `tier: core` = demo 35 |
 | `parcelco/data/expected/*.json` | checklist labels |
 | `parcelco/eval/checklist.py` | scorer |
 | `parcelco/rag.py` | retrieve |
@@ -57,14 +57,14 @@ Flask dashboard (SSE)
 
 **Harness** = LangGraph + LangChain + Chroma + checklist + learnings/prompt.  
 **Tracer** = LangFuse CallbackHandler.  
-**Model** = **local Qwen via LM Studio** (`OPENAI_BASE_URL=http://127.0.0.1:1234/v1`, `PARCELCO_MODEL=qwen3.8_4b_distilled_gguf`). Not OpenAI cloud.
+**Model** = **local Qwen3.5-4B via LM Studio** (`OPENAI_BASE_URL=http://127.0.0.1:1234/v1`, `PARCELCO_MODEL=qwen3.5-4b`). Use MLX 4-bit on Apple silicon; see [local setup](docs/LOCAL_SETUP.md).
 
 ---
 
 ## Data rules
 
 - Tickets live in `parcelco/data/tickets/all.jsonl` (`split`: `improve` | `holdout`, `tier`: `core` | `full`).
-- `PARCELCO_SUITE=demo` loads only `core` (35); `full` loads all 155 for a clearer before→after curve.
+- `PARCELCO_SUITE=demo` loads only `core` (35); `full` loads all 1000 for a larger evaluation.
 - Create `parcelco/data/expected/{id}.json` for **every** ticket id with:
   ```json
   {
@@ -168,7 +168,7 @@ Dashboard panels:
 
 ## Suggested build order
 
-1. Expected JSON for all 155 tickets + checklist unit tests on 3 fixtures  
+1. Expected JSON for all 1000 tickets + checklist unit tests on 3 fixtures
 2. RAG + inner graph (single ticket CLI)  
 3. Outer loop + SQLite history  
 4. LangFuse optional wiring  
