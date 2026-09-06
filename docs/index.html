@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ParcelCo Flywheel — Workshop 1 Field Guide</title>
+<style>
+  /* ─────────────────────────────────────────────
+     Design direction: printed technical field guide.
+     White paper, warm off-black ink, one burnt-orange
+     accent. Square corners, hairline rules, mono
+     indices, serif display. No gradients, no shadows,
+     no rounded cards, no decorative color.
+     ───────────────────────────────────────────── */
+  :root{
+    --paper:#ffffff;
+    --bone:#f7f5f0;
+    --ink:#1a1812;
+    --ink-2:#57534a;
+    --ink-3:#8a857a;
+    --rule:#e3ded2;
+    --rule-strong:#1a1812;
+    --accent:#bf3f0c;          /* burnt orange — functional highlight */
+    --ok:#1f6a44;             /* deep green — semantic only */
+    --bad:#a31f14;            /* brick red — semantic only */
+    --ochre:#8a6b12;          /* warning — semantic only */
+    --sans:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    --serif:Georgia,"Times New Roman",serif;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    --fs:16px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} }
+  body{
+    background:var(--paper);color:var(--ink);
+    font:var(--fs)/1.62 var(--sans);
+    font-feature-settings:"liga";
+    display:flex;min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  body.present{--fs:20px}
+  ::selection{background:var(--accent);color:#fff}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* ---------- TOC rail ---------- */
+  nav{
+    position:fixed;top:0;left:0;bottom:0;width:248px;
+    padding:34px 26px;background:var(--paper);
+    border-right:1px solid var(--rule);
+    display:flex;flex-direction:column;z-index:10;
+  }
+  nav .docno{font-family:var(--mono);font-size:.62rem;letter-spacing:.18em;color:var(--ink-3);text-transform:uppercase}
+  nav .brand{font-family:var(--serif);font-size:1.35rem;font-weight:700;letter-spacing:-.01em;margin:6px 0 2px}
+  nav .brand em{font-style:italic;color:var(--accent)}
+  nav .sub{font-size:.74rem;color:var(--ink-2);line-height:1.5;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--rule-strong)}
+  nav a{
+    display:flex;align-items:baseline;gap:10px;
+    color:var(--ink-2);text-decoration:none;
+    padding:7px 2px;font-size:.86rem;border-bottom:1px solid var(--rule);
+  }
+  nav a .idx{font-family:var(--mono);font-size:.64rem;color:var(--ink-3)}
+  nav a:hover{color:var(--ink);background:var(--bone)}
+  nav a.active{color:var(--ink);font-weight:600}
+  nav a.active .idx{color:var(--accent)}
+  nav .foot{margin-top:auto;padding-top:18px;border-top:1px solid var(--rule);font-size:.7rem;color:var(--ink-3);line-height:1.8}
+  nav .foot kbd{font-family:var(--mono);font-size:.62rem;border:1px solid var(--rule-strong);padding:0 5px;color:var(--ink)}
+  nav .toggle{
+    margin-top:12px;background:var(--paper);border:1px solid var(--rule-strong);
+    color:var(--ink);padding:7px 10px;font-family:var(--mono);font-size:.66rem;
+    letter-spacing:.08em;text-transform:uppercase;cursor:pointer;text-align:left;
+  }
+  nav .toggle:hover{background:var(--ink);color:#fff}
+
+  main{margin-left:248px;flex:1;max-width:1060px;padding:0 56px 140px}
+  section{padding-top:64px;border-top:1px solid var(--rule);margin-top:24px}
+  section:first-of-type{border-top:none;margin-top:0;padding-top:44px}
+
+  /* ---------- masthead ---------- */
+  .masthead{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--rule-strong);padding-bottom:10px;font-family:var(--mono);font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)}
+  h1{
+    font-family:var(--serif);font-weight:700;
+    font-size:clamp(2.6rem,5.4vw,4.1rem);
+    line-height:1.04;letter-spacing:-.022em;text-wrap:balance;
+    margin:34px 0 18px;
+  }
+  h1 em{font-style:italic;color:var(--accent)}
+  .lede{font-family:var(--serif);font-size:1.14rem;line-height:1.6;color:var(--ink-2);max-width:62ch;margin-bottom:34px;text-wrap:pretty}
+  .lede strong{color:var(--ink)}
+
+  h2{
+    font-family:var(--serif);font-size:1.85rem;font-weight:700;
+    letter-spacing:-.015em;text-wrap:balance;
+    display:flex;align-items:baseline;gap:16px;margin-bottom:8px;
+  }
+  h2 .num{font-family:var(--mono);font-size:.95rem;font-weight:400;color:var(--accent);letter-spacing:0}
+  h3{
+    font-family:var(--mono);font-size:.7rem;font-weight:400;
+    letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2);
+    margin:38px 0 14px;padding-top:12px;border-top:1px solid var(--rule-strong);
+  }
+  p{margin-bottom:12px}
+  strong{font-weight:600}
+  a{color:var(--accent);text-underline-offset:3px}
+
+  /* ---------- loop equation strip ---------- */
+  .loopline{
+    display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;
+    font-family:var(--mono);font-size:.92rem;
+    border:1px solid var(--rule-strong);padding:16px 20px;margin:0 0 40px;
+    background:var(--bone);
+  }
+  .loopline .st{font-weight:600}
+  .loopline .ar{color:var(--ink-3)}
+  .loopline .dec{color:var(--accent);font-weight:600}
+
+  /* ---------- stat row: asymmetric, tabular ---------- */
+  .stats{
+    display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;
+    border:1px solid var(--rule-strong);margin-bottom:36px;
+  }
+  .stat{padding:18px 20px;border-right:1px solid var(--rule)}
+  .stat:last-child{border-right:none}
+  .stat:first-child{background:var(--ink);color:var(--paper)}
+  .stat .big{
+    font-family:var(--serif);font-size:2.1rem;line-height:1;font-weight:700;
+    font-variant-numeric:tabular-nums;letter-spacing:-.02em;
+  }
+  .stat:first-child .big{color:var(--paper)}
+  .stat .big span{color:var(--accent)}
+  .stat:first-child .big span{color:var(--accent);filter:brightness(1.6)}
+  .stat .lbl{font-size:.8rem;font-weight:600;margin-top:7px}
+  .stat .sub2{font-size:.72rem;color:var(--ink-3);margin-top:2px;line-height:1.45}
+  .stat:first-child .sub2{color:#b9b4a8}
+
+  /* ---------- pull quote ---------- */
+  .quote{
+    font-family:var(--serif);font-style:italic;font-size:1.32rem;line-height:1.5;
+    letter-spacing:-.005em;text-wrap:pretty;
+    border-left:3px solid var(--accent);padding:6px 0 6px 22px;margin:30px 0;
+    max-width:56ch;
+  }
+  .quote .attr{display:block;font-family:var(--mono);font-style:normal;font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-top:10px}
+
+  /* ---------- schematic loop diagram ---------- */
+  .schematic{border:1px solid var(--rule-strong);padding:28px 26px 22px;margin:6px 0 6px;background:var(--paper)}
+  .schematic .cap{font-family:var(--mono);font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);margin-bottom:20px}
+  .flowrow{display:grid;grid-template-columns:1fr 34px 1fr 34px 1fr 34px 1fr;align-items:stretch}
+  .flowrow2{display:grid;grid-template-columns:1fr 34px 1fr 34px 1fr;align-items:stretch;margin-top:26px}
+  .node{border:1px solid var(--rule-strong);padding:13px 14px 12px;position:relative;background:var(--paper)}
+  .node .no{font-family:var(--mono);font-size:.58rem;color:var(--ink-3);letter-spacing:.14em}
+  .node .t{font-weight:700;font-size:.98rem;margin-top:2px;letter-spacing:-.01em}
+  .node .d{font-size:.72rem;color:var(--ink-2);margin-top:4px;line-height:1.45}
+  .node.decision{border-width:2px;border-color:var(--accent)}
+  .node.decision .t{color:var(--accent)}
+  .node.terminal{background:var(--bone)}
+  .conn{display:flex;align-items:center;justify-content:center;font-family:var(--mono);color:var(--ink-2);font-size:1.05rem;position:relative}
+  .conn small{
+    position:absolute;top:calc(50% + 14px);left:50%;transform:translateX(-50%);
+    font-size:.55rem;letter-spacing:.06em;color:var(--bad);white-space:nowrap;
+  }
+  .loopback{
+    display:flex;align-items:center;gap:12px;margin-top:16px;
+    border-top:1px dashed var(--bad);padding:9px 2px 0;
+    font-family:var(--mono);font-size:.66rem;color:var(--bad);letter-spacing:.04em;
+  }
+  .loopback.green{border-top-color:var(--ok);color:var(--ok)}
+  .downlink{font-family:var(--mono);font-size:.66rem;color:var(--ink-2);text-align:right;margin-top:14px;letter-spacing:.04em}
+  .downlink b{color:var(--ink);font-weight:600}
+
+  /* ---------- tables ---------- */
+  table{
+    width:100%;border-collapse:collapse;margin:6px 0 24px;
+    font-size:.9rem;border-top:2px solid var(--rule-strong);border-bottom:2px solid var(--rule-strong);
+  }
+  caption{font-family:var(--mono);font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding-bottom:8px}
+  th{
+    text-align:left;padding:9px 14px 8px 0;
+    font-family:var(--mono);font-size:.6rem;font-weight:600;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);
+    border-bottom:1px solid var(--rule-strong);
+  }
+  td{padding:10px 14px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td:first-child{color:var(--ink);font-weight:600}
+  td.num{font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:.8rem;white-space:nowrap}
+
+  /* ---------- definition-list pairs ---------- */
+  dl.pairs{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--rule-strong);margin:8px 0 26px}
+  dl.pairs>div{padding:16px 20px}
+  dl.pairs>div:first-child{border-right:1px solid var(--rule)}
+  dl.pairs dt{font-weight:700;font-size:.95rem}
+  dl.pairs dt .tag{font-family:var(--mono);font-size:.6rem;font-weight:400;color:var(--accent);letter-spacing:.14em;margin-right:8px}
+  dl.pairs dd{font-size:.85rem;color:var(--ink-2);margin-top:5px;line-height:1.55}
+
+  /* ---------- say / don't / warn ---------- */
+  .verdicts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border:1px solid var(--rule-strong);margin:6px 0 10px}
+  .verdict{padding:15px 18px;border-right:1px solid var(--rule)}
+  .verdict:last-child{border-right:none}
+  .verdict .tag{font-family:var(--mono);font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;display:block;margin-bottom:6px}
+  .verdict.ok .tag{color:var(--ok)}
+  .verdict.no .tag{color:var(--bad)}
+  .verdict p{font-size:.84rem;color:var(--ink-2);margin:0;line-height:1.55}
+  .verdict p strong{color:var(--ink)}
+  .stack .verdict{border-right:none;border-bottom:1px solid var(--rule)}
+  .stack .verdict:last-child{border-bottom:none}
+  .stack{grid-template-columns:1fr}
+  .warn{
+    border:1px solid var(--ochre);border-left-width:3px;padding:11px 16px;
+    font-size:.86rem;color:var(--ink-2);margin:8px 0;background:#fffdf4;
+  }
+  .warn b{color:var(--ochre);font-family:var(--mono);font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;margin-right:10px}
+
+  /* ---------- code ---------- */
+  pre{
+    background:var(--ink);color:#e9e5d8;border:none;
+    padding:18px 20px;font-family:var(--mono);font-size:.78rem;line-height:1.7;
+    overflow-x:auto;margin:8px 0 22px;
+  }
+  pre .cm{color:#8a857a}
+  pre .cmd{color:#f0a766}
+  code{font-family:var(--mono);font-size:.84em;background:var(--bone);border:1px solid var(--rule);padding:0 5px;color:var(--ink)}
+  pre code{background:none;border:none;padding:0;color:inherit}
+
+  /* ---------- demo agenda ---------- */
+  .stage{display:grid;grid-template-columns:170px 1fr;border:1px solid var(--rule-strong);margin:0 0 -1px;background:var(--paper)}
+  .stage .when{border-right:1px solid var(--rule);padding:20px 18px;background:var(--bone)}
+  .stage .when .t{font-family:var(--mono);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+  .stage .when .dur{font-family:var(--serif);font-size:1.35rem;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .stage .what{padding:20px 24px}
+  .stage .what h4{font-size:1.08rem;font-weight:700;letter-spacing:-.01em;margin-bottom:10px}
+  .stage ol{margin:0 0 10px 20px}
+  .stage li{font-size:.89rem;color:var(--ink-2);margin-bottom:5px}
+  .talk{
+    font-family:var(--serif);font-style:italic;font-size:.93rem;line-height:1.55;
+    border-top:1px solid var(--rule);padding-top:11px;margin-top:12px;color:var(--ink);
+  }
+  .talk::before{
+    content:"Talk track";font-family:var(--mono);font-style:normal;
+    font-size:.56rem;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--accent);display:block;margin-bottom:5px;
+  }
+  .kfnote{font-size:.72rem;color:var(--ink-3);margin-top:8px}
+
+  /* ---------- screen panels: numbered index list ---------- */
+  .panellist{border:1px solid var(--rule-strong);margin:6px 0 10px}
+  .panel{
+    display:grid;grid-template-columns:64px 220px 1fr;align-items:baseline;gap:18px;
+    padding:13px 20px;border-bottom:1px solid var(--rule);
+  }
+  .panel:last-child{border-bottom:none}
+  .panel:nth-child(odd){background:var(--bone)}
+  .panel .pn{font-family:var(--mono);font-size:.72rem;color:var(--accent)}
+  .panel h5{font-size:.92rem;font-weight:700}
+  .panel p{font-size:.86rem;color:var(--ink-2);font-style:italic;margin:0}
+
+  /* ---------- lists ---------- */
+  ul.clean,ol.clean{margin:6px 0 18px 22px}
+  ul.clean li,ol.clean li{margin-bottom:7px;color:var(--ink-2);font-size:.93rem}
+  ul.clean li strong,ol.clean li strong{color:var(--ink)}
+  .checklist{list-style:none;margin:10px 0}
+  .checklist li{
+    padding:10px 14px;border:1px solid var(--rule-strong);border-bottom:none;
+    font-size:.92rem;color:var(--ink-2);
+  }
+  .checklist li:last-child{border-bottom:1px solid var(--rule-strong)}
+  .checklist li::before{content:"☐";color:var(--ok);margin-right:10px}
+  .badge{
+    display:inline-block;font-family:var(--mono);font-size:.58rem;font-weight:400;
+    padding:2px 8px;border:1px solid var(--ochre);color:var(--ochre);
+    vertical-align:middle;margin-left:10px;letter-spacing:.12em;text-transform:uppercase;
+  }
+  .b-live{color:var(--ok);border-color:var(--ok)}
+
+  footer{
+    margin-top:90px;padding-top:18px;border-top:2px solid var(--rule-strong);
+    font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;color:var(--ink-3);
+    display:flex;justify-content:space-between;text-transform:uppercase;
+  }
+
+  /* ---------- responsive ---------- */
+  @media (max-width:920px){
+    nav{display:none}
+    main{margin-left:0;padding:0 24px 90px}
+    .stats{grid-template-columns:1fr 1fr}
+    .stat:nth-child(2){border-right:none}
+    .stat:nth-child(1),.stat:nth-child(2){border-bottom:1px solid var(--rule)}
+    .flowrow,.flowrow2{grid-template-columns:1fr}
+    .conn{padding:4px 0;transform:rotate(90deg)}
+    .conn small{display:none}
+    .stage{grid-template-columns:1fr}
+    .stage .when{border-right:none;border-bottom:1px solid var(--rule);display:flex;gap:16px;align-items:baseline}
+    .panel{grid-template-columns:48px 1fr}
+    .panel p{grid-column:2}
+    .verdicts{grid-template-columns:1fr}
+    .verdict{border-right:none;border-bottom:1px solid var(--rule)}
+    dl.pairs{grid-template-columns:1fr}
+    dl.pairs>div:first-child{border-right:none;border-bottom:1px solid var(--rule)}
+  }
+
+  /* ---------- print: doubles as the handout ---------- */
+  @media print{
+    nav{display:none}
+    main{margin:0;max-width:none;padding:0}
+    body{font-size:11.5px}
+    section{page-break-inside:avoid;padding-top:34px}
+    .stage,.schematic,.stats,table,pre,dl.pairs,.panellist{page-break-inside:avoid}
+    pre{background:#f4f2ec;color:var(--ink);border:1px solid var(--rule-strong)}
+    pre .cm{color:#777263} pre .cmd{color:var(--accent)}
+    a{color:var(--ink)}
+    .talk{page-break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+
+<nav id="nav" aria-label="Contents">
+  <div class="docno">Field Guide · Rev 1.0</div>
+  <div class="brand">ParcelCo <em>Flywheel</em></div>
+  <div class="sub">Workshop 1 — the self-improving support agent. Companion deck for the live demo.</div>
+  <a href="#overview" class="active"><span class="idx">00</span>Overview</a>
+  <a href="#loop"><span class="idx">01</span>The One Loop</a>
+  <a href="#demo"><span class="idx">02</span>Live Demo Path</a>
+  <a href="#screen"><span class="idx">03</span>Screen Layout</a>
+  <a href="#speaker"><span class="idx">04</span>Speaker Notes</a>
+  <a href="#workshop"><span class="idx">05</span>Workshop Build</a>
+  <a href="#langfuse"><span class="idx">06</span>LangFuse &amp; Ops</a>
+  <a href="#cheatsheet"><span class="idx">07</span>Cheat Sheet</a>
+  <button class="toggle" id="presentToggle">Presenter mode — P</button>
+  <div class="foot">
+    <kbd>←</kbd> <kbd>→</kbd> sections · <kbd>P</kbd> present<br>
+    Print → PDF = workshop handout<br><br>
+    Sources · CONCEPT, WORKSHOP,<br>PRESALES_DEMO, SPEAKER_NOTES,<br>LANGFUSE_DOCKER
+  </div>
+</nav>
+
+<main>
+
+<!-- ============ 00 · OVERVIEW ============ -->
+<section id="overview">
+  <div class="masthead"><span>ParcelCo Flywheel — Workshop 1</span><span>Doc 00 · Overview</span></div>
+  <h1>The self-improving<br>support agent, <em>one loop.</em></h1>
+  <p class="lede">A frozen local LLM (<strong>Qwen</strong>) answers ParcelCo tickets inside <strong>one realtime loop</strong>. A Python checklist grades replies. If a reply fails, the <strong>same loop</strong> retries (heal). Across many tickets, <strong>reflect</strong> writes lessons and a <strong>gate</strong> keeps them only when scores improve. ParcelCo is fictional — the product is the visible loop, plus proof.</p>
+
+  <div class="loopline">
+    <span class="st">retrieve</span><span class="ar">→</span>
+    <span class="st">generate</span><span class="ar">→</span>
+    <span class="st">evaluate</span><span class="ar">→</span>
+    <span class="dec">heal?</span><span class="ar">→</span>
+    <span class="st">reflect (suite)</span><span class="ar">→</span>
+    <span class="dec">keep / revert</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="big">one<span>.</span></div><div class="lbl">loop — not two systems</div><div class="sub2">heal and improve are steps of a single loop</div></div>
+    <div class="stat"><div class="big">1000</div><div class="lbl">labeled tickets</div><div class="sub2">700 learn-set (A) + 300 holdout (B)</div></div>
+    <div class="stat"><div class="big">35</div><div class="lbl">core demo suite</div><div class="sub2"><code>--suite demo</code> for live rooms</div></div>
+    <div class="stat"><div class="big">0</div><div class="lbl">weight updates</div><div class="sub2">Qwen stays frozen; memory is gated</div></div>
+  </div>
+
+  <blockquote class="quote">“One loop. Act, check, heal, reflect, keep only when the numbers say so. Weights stay frozen.”
+    <span class="attr">— The punchline</span>
+  </blockquote>
+
+  <h3>How the room sees it</h3>
+  <ol class="clean">
+    <li><strong>Pick a ticket</strong> from the big list</li>
+    <li><strong>Run loop on ticket</strong> — watch nodes light in realtime + attempt timeline</li>
+    <li><strong>Score suite</strong> — where it was</li>
+    <li><strong>Learn</strong> — reflect + gate — where it is now</li>
+    <li>Optional <strong>LangFuse</strong> trace for the generate step</li>
+  </ol>
+</section>
+
+<!-- ============ 01 · THE ONE LOOP ============ -->
+<section id="loop">
+  <h2><span class="num">01</span>The One Loop</h2>
+  <p class="lede">Heal is a retry step in the <strong>same</strong> loop — not a second system. The checklist, not the model, is the gate.</p>
+
+  <div class="schematic">
+    <div class="cap">Fig. 1 — One ticket through the loop; suite steps below the fold</div>
+    <div class="flowrow">
+      <div class="node"><div class="no">STEP 1</div><div class="t">Retrieve</div><div class="d">Pull policy / FAQ for this ticket</div></div>
+      <div class="conn">→</div>
+      <div class="node"><div class="no">STEP 2</div><div class="t">Generate</div><div class="d">Qwen drafts reply + <code>ACTION:</code></div></div>
+      <div class="conn">→</div>
+      <div class="node"><div class="no">STEP 3</div><div class="t">Evaluate</div><div class="d">Checklist vs expected JSON</div></div>
+      <div class="conn"><span>→</span><small>fail · retries left</small></div>
+      <div class="node decision"><div class="no">STEP 4</div><div class="t">Heal</div><div class="d">Feed errors back; retry (bounded)</div></div>
+    </div>
+    <div class="loopback">↺&nbsp; fail &amp; retries left — Heal feeds back into Retrieve. Same loop, not a second system.</div>
+    <div class="downlink">pass or max heals <b>↓</b> suite-level steps</div>
+    <div class="flowrow2">
+      <div class="node"><div class="no">STEP 5</div><div class="t">Reflect</div><div class="d">On the suite: lessons from learn-set failures</div></div>
+      <div class="conn">→</div>
+      <div class="node decision"><div class="no">STEP 6</div><div class="t">Gate — keep?</div><div class="d">Keep only if learn-set rises &amp; holdout holds</div></div>
+      <div class="conn">→</div>
+      <div class="node terminal"><div class="no">YES</div><div class="t">Memory</div><div class="d">learnings / prompt — feeds future Retrieve</div></div>
+    </div>
+    <div class="loopback green">↺&nbsp; kept memory feeds future Retrieve &nbsp;·&nbsp; gate says no → revert memory, nothing changes</div>
+  </div>
+
+  <h3>Step by step</h3>
+  <table>
+    <caption>Table 1 — the six steps</caption>
+    <tr><th style="width:130px">Step</th><th>What happens</th></tr>
+    <tr><td>Retrieve</td><td>Pull policy/FAQ for this ticket</td></tr>
+    <tr><td>Generate</td><td>Qwen drafts reply + <code>ACTION:</code></td></tr>
+    <tr><td>Evaluate</td><td>Checklist vs expected JSON</td></tr>
+    <tr><td>Heal</td><td>Feed errors back; retry (bounded)</td></tr>
+    <tr><td>Reflect</td><td>On the suite: lessons from learn-set failures</td></tr>
+    <tr><td>Gate</td><td>Keep only if learn-set rises and holdout holds</td></tr>
+  </table>
+
+  <h3>The split that proves it</h3>
+  <dl class="pairs">
+    <div>
+      <dt><span class="tag">PART A</span>Learn set — 700 tickets</dt>
+      <dd>Tickets we learn from. Reflect mines its failures; the gate measures lift here.</dd>
+    </div>
+    <div>
+      <dt><span class="tag">PART B</span>Holdout — 300 tickets</dt>
+      <dd>Score only. Proves we didn’t memorize. Live demo suite: core <strong>35</strong> (20A / 15B).</dd>
+    </div>
+  </dl>
+
+  <h3>What we are not doing</h3>
+  <div class="verdicts">
+    <div class="verdict no"><span class="tag">✗ Not fine-tuning</span><p>Qwen weights stay frozen — training an SLM is Workshop 2.</p></div>
+    <div class="verdict no"><span class="tag">✗ Not two systems</span><p>Heal vs improve are not separate loops — one loop, different steps.</p></div>
+    <div class="verdict no"><span class="tag">✗ Not LLM self-grading</span><p>A hard Python checklist is the gate — the model never grades itself.</p></div>
+  </div>
+</section>
+
+<!-- ============ 02 · LIVE DEMO PATH ============ -->
+<section id="demo">
+  <h2><span class="num">02</span>Live Demo / Pre-Sales Path</h2>
+  <blockquote class="quote">“We don’t just call an LLM — we run a visible harness: LangChain for tools/model I/O, LangGraph for the loop, a hard checklist evaluator, LangFuse for traces, then an outer improve loop that only keeps changes that raise scores.”
+    <span class="attr">— The story in one line</span>
+  </blockquote>
+
+  <div class="stage">
+    <div class="when"><div class="t">Step 1 · Warm-up</div><div class="dur">60–90 s</div></div>
+    <div class="what">
+      <h4>Demo one ticket</h4>
+      <ol>
+        <li>Open <code>http://127.0.0.1:5050</code></li>
+        <li>Click <strong>Demo one ticket</strong></li>
+        <li>Point at the strip as it lights: <strong>Click → LangChain → LangGraph → Evaluator</strong> (+ LangFuse if keys set)</li>
+        <li>Open inspector: draft, <code>ACTION:</code> line, pass/fail</li>
+      </ol>
+      <div class="talk">“Customer asks for a refund. LangChain pulls policy. Qwen drafts. Checklist grades — not the model grading itself. If it fails, LangGraph heals and retries.”</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="when"><div class="t">Step 2 · Baseline</div><div class="dur">3–6 min</div></div>
+    <div class="what">
+      <h4>Run baseline <span class="badge b-live">live: demo suite · 20A/15B</span></h4>
+      <ol>
+        <li>Click <strong>Run baseline</strong></li>
+        <li>When done, read <strong>Part A</strong> and <strong>Part B</strong> rates — then point at <strong>Where it was</strong></li>
+      </ol>
+      <div class="talk">“Cold harness on a labeled suite. Holdout exists so we can’t fake improvement by memorizing the train tickets. Full catalog is 155 tickets; we can run the core subset live.”</div>
+      <p class="kfnote">Proof recording / overnight run: <code>PARCELCO_SUITE=full</code> (100A / 55B). Longer on full.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="when"><div class="t">Step 3 · Improve loop</div><div class="dur">5–8 min</div></div>
+    <div class="what">
+      <h4>Start improve loop</h4>
+      <ol>
+        <li>Set rounds to <strong>2</strong></li>
+        <li>Click <strong>Start improve loop</strong></li>
+        <li>When <strong>Improve</strong> lights and history shows <strong>kept / reverted</strong>, pause on <strong>Where it is</strong> + <strong>Lift</strong></li>
+      </ol>
+      <div class="talk">“Outer loop writes lessons, re-scores. We only keep if Part A rises and Part B doesn’t collapse. That’s the flywheel you’d put in production governance — before vs after, not vibes.”</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="when"><div class="t">Step 4 · Traces</div><div class="dur">optional</div></div>
+    <div class="what">
+      <h4>LangFuse tab <span class="badge">if configured</span></h4>
+      <ol>
+        <li>Open the LangFuse project</li>
+        <li>Find the latest trace for a generate call</li>
+        <li>Show nested spans: retrieve context → LLM → score</li>
+      </ol>
+      <div class="talk">“Observability is first-class — every sales engineer / risk reviewer can audit.”</div>
+      <p class="kfnote">If keys are empty: “Tracing hooks are wired; we turn them on with keys — strip shows optional/off.”</p>
+    </div>
+  </div>
+
+  <h3>What not to claim</h3>
+  <div class="verdicts">
+    <div class="verdict no"><span class="tag">✗ Model weights</span><p>Don’t say the <strong>model weights</strong> improved — say the <strong>harness / memory / prompt</strong> improved.</p></div>
+    <div class="verdict no"><span class="tag">✗ Hide latency</span><p>Don’t hide slow local 4B latency — frame it as “runs on your VPC / laptop.”</p></div>
+    <div class="verdict no"><span class="tag">✗ Workshop 2</span><p>Training an SLM is a <strong>follow-on</strong>, not this demo.</p></div>
+  </div>
+
+  <h3>Setup checklist</h3>
+<pre><code><span class="cm"># LM Studio: Qwen loaded on :1234</span>
+<span class="cmd">cd</span> ~/Desktop/Self\ Improving\ AI\ Agent\ Workshop
+<span class="cmd">source</span> .venv/bin/activate
+<span class="cm"># Live room: demo suite. Proof deck: omit --suite or use full.</span>
+python -m parcelco.cli serve --suite demo</code></pre>
+<pre><code><span class="cm"># Optional .env</span>
+PARCELCO_SUITE=full   <span class="cm"># or demo</span>
+LANGFUSE_PUBLIC_KEY=...
+LANGFUSE_SECRET_KEY=...
+LANGFUSE_HOST=https://cloud.langfuse.com</code></pre>
+</section>
+
+<!-- ============ 03 · SCREEN LAYOUT ============ -->
+<section id="screen">
+  <h2><span class="num">03</span>Screen Layout — What Buyers See</h2>
+  <p class="lede">Each dashboard panel, paired with the sentence that sells it.</p>
+  <div class="panellist">
+    <div class="panel"><span class="pn">[01]</span><h5>Stack strip (top)</h5><p>“These are the productized layers — watch them light up.”</p></div>
+    <div class="panel"><span class="pn">[02]</span><h5>LangGraph nodes</h5><p>“Inner loop: retrieve → generate → evaluate → heal.”</p></div>
+    <div class="panel"><span class="pn">[03]</span><h5>Activity feed</h5><p>“Narration of each layer as it fires.”</p></div>
+    <div class="panel"><span class="pn">[04]</span><h5>Scoreboard + chart</h5><p>“Proof: Part A learn set, Part B holdout — bigger suite so lift is visible.”</p></div>
+    <div class="panel"><span class="pn">[05]</span><h5>Where it was → where it is</h5><p>“Same numbers, framed as before/after for the buyer.”</p></div>
+    <div class="panel"><span class="pn">[06]</span><h5>History</h5><p>“Audit log of keep vs revert.”</p></div>
+    <div class="panel"><span class="pn">[07]</span><h5>Inspector</h5><p>“One ticket’s draft + checklist + retrieved docs.”</p></div>
+    <div class="panel"><span class="pn">[08]</span><h5>LangFuse (browser tab)</h5><p>“Same run as nested spans / cost / prompt version.”</p></div>
+  </div>
+</section>
+
+<!-- ============ 04 · SPEAKER NOTES ============ -->
+<section id="speaker">
+  <h2><span class="num">04</span>Speaker Notes</h2>
+  <p class="lede">Open with the mismatch fix (2 min), then leave the dashboard teach strip up the whole session.</p>
+
+  <blockquote class="quote">“It’s not two systems. It’s one loop: retrieve → generate → evaluate → heal → reflect → keep/revert.”
+    <span class="attr">— Opening line</span>
+  </blockquote>
+
+  <h3>Setup</h3>
+  <ul class="clean">
+    <li>Qwen in <strong>LM Studio</strong></li>
+    <li><code>python -m parcelco.cli serve --suite demo</code></li>
+    <li>Optional LangFuse</li>
+  </ul>
+
+  <h3>Script</h3>
+  <ol class="clean">
+    <li>Pick a ticket from the <strong>1000</strong>-ticket catalog (demo filters to core 35)</li>
+    <li><strong>Run loop on ticket</strong> — narrate each node as it lights</li>
+    <li>Hard ticket → show <strong>Loop attempts</strong> (heal)</li>
+    <li><strong>Score suite</strong> / <strong>Learn</strong> — Reflect node + where it was → now</li>
+    <li>LangFuse trace (optional)</li>
+  </ol>
+
+  <h3>Say this</h3>
+  <div class="verdicts stack">
+    <div class="verdict ok"><span class="tag">✓ Say</span><p>Heal = retry step in the <strong>same</strong> loop.</p></div>
+    <div class="verdict ok"><span class="tag">✓ Say</span><p>Learn set vs holdout = proof we didn’t memorize.</p></div>
+    <div class="verdict ok"><span class="tag">✓ Say</span><p>Weights frozen; memory gated.</p></div>
+  </div>
+
+  <h3>Pitfalls</h3>
+  <div class="warn"><b>⚠ Latency</b>Full suite feels stuck on 4B — use <code>--suite demo</code>.</div>
+  <div class="warn"><b>⚠ Runaway</b><code>Ctrl+C</code> stops serve + background job.</div>
+</section>
+
+<!-- ============ 05 · WORKSHOP BUILD ============ -->
+<section id="workshop">
+  <h2><span class="num">05</span>Workshop 1 — Build the One Loop</h2>
+  <p class="lede"><strong>Outcome:</strong> everyone can run and explain <strong>one self-improving loop</strong> in realtime.</p>
+
+  <dl class="pairs">
+    <div>
+      <dt><span class="tag">TRACK A</span>Run &amp; inspect</dt>
+      <dd>Use this repo; follow the UI teach strip.</dd>
+    </div>
+    <div>
+      <dt><span class="tag">TRACK B</span>Build with us</dt>
+      <dd>Implement each step; peek at finished files when stuck.</dd>
+    </div>
+  </dl>
+
+  <h3>Prerequisites</h3>
+<pre><code><span class="cmd">cd</span> ~/Desktop/Self\ Improving\ AI\ Agent\ Workshop
+python3 -m venv .venv &amp;&amp; <span class="cmd">source</span> .venv/bin/activate
+pip install -e .
+cp -n .env.example .env
+<span class="cm"># LM Studio: Qwen on http://127.0.0.1:1234/v1</span></code></pre>
+  <p>Ping the model:</p>
+<pre><code>python -c "from parcelco.llm import chat_model; print(chat_model().invoke('Reply: pong').content[:40])"</code></pre>
+
+  <h3>Live room path — Track A · 20 min demo inside the build</h3>
+<pre><code>python -m parcelco.cli serve --suite demo
+<span class="cm"># http://127.0.0.1:5050</span></code></pre>
+  <ol class="clean">
+    <li>Teach strip: <strong>Pick → Run → Heal → Learn</strong></li>
+    <li>Pick a hard ticket (VIP / invent amount) → <strong>Run loop on ticket</strong></li>
+    <li>Watch <strong>one loop</strong> nodes + <strong>Loop attempts</strong></li>
+    <li><strong>Score suite</strong> → where it was</li>
+    <li><strong>Learn (1 round)</strong> → Reflect node + where it is now</li>
+    <li>Optional LangFuse open trace</li>
+  </ol>
+  <p class="kfnote">Dataset: <strong>1000</strong> labeled tickets (700 learn / 300 holdout). Demo suite = core 35 for speed.</p>
+
+  <h3>Build checkpoints — Track B</h3>
+  <table>
+    <caption>Table 2 — checkpoints</caption>
+    <tr><th style="width:36px">#</th><th>Checkpoint</th><th style="width:230px">Where</th></tr>
+    <tr><td class="num">0</td><td><strong>Data</strong> — tickets + <code>expected/{id}.json</code>; verify load returns <strong>1000</strong></td><td><code>parcelco.data_io</code></td></tr>
+    <tr><td class="num">1</td><td><strong>Evaluate (checklist)</strong> — ACTION + must_include / must_not</td><td><code>parcelco/eval/checklist.py</code></td></tr>
+    <tr><td class="num">2</td><td><strong>Retrieve (RAG)</strong></td><td><code>parcelco/rag.py</code></td></tr>
+    <tr><td class="num">3</td><td><strong>Loop body</strong> — retrieve → generate → evaluate → heal; <em>the loop for one ticket</em></td><td><code>parcelco/graphs/inner.py</code></td></tr>
+    <tr><td class="num">4</td><td><strong>Reflect + gate</strong> on the suite — same loop across many tickets; keep/revert</td><td><code>parcelco/graphs/outer.py</code></td></tr>
+    <tr><td class="num">5</td><td><strong>UI + LangFuse</strong> — one workspace, teach strip, realtime nodes</td><td>serve + scripts</td></tr>
+  </table>
+<pre><code><span class="cm"># Checkpoint 0 verify:</span>
+python -c "from parcelco.data_io import load_tickets; print(len(load_tickets(None, respect_suite=False)))"  <span class="cm"># expect 1000</span></code></pre>
+
+  <h3>Facilitator schedule — 60–75 min</h3>
+  <table>
+    <caption>Table 3 — agenda</caption>
+    <tr><th style="width:90px">Min</th><th>Block</th></tr>
+    <tr><td class="num">0–8</td><td>One-loop punchline + open UI</td></tr>
+    <tr><td class="num">8–20</td><td>Checkpoint 1–2 together</td></tr>
+    <tr><td class="num">20–40</td><td>Checkpoint 3 — run tickets live</td></tr>
+    <tr><td class="num">40–55</td><td>Checkpoint 4 — score + learn</td></tr>
+    <tr><td class="num">55–70</td><td>LangFuse + Q&amp;A</td></tr>
+    <tr><td class="num">70–75</td><td>Workshop 2 teaser</td></tr>
+  </table>
+  <div class="warn"><b>⚠ Live</b>Use <code>--suite demo</code> live. Full 1000 is for overnight / recorded proof. Stop a runaway suite with <code>Ctrl+C</code> on serve.</div>
+
+  <h3>Done when</h3>
+  <ul class="checklist">
+    <li>You can draw the one loop from memory</li>
+    <li>A live ticket shows heal attempts</li>
+    <li>Score → Learn updates where it was → where it is now</li>
+    <li>You never say “two loops” — only steps of one loop</li>
+  </ul>
+</section>
+
+<!-- ============ 06 · LANGFUSE ============ -->
+<section id="langfuse">
+  <h2><span class="num">06</span>LangFuse — Self-Hosted with Docker</h2>
+  <p class="lede">Langfuse is MIT open source. The workshop vendors the official compose stack under <code>docker/langfuse/</code>.</p>
+
+  <h3>Start</h3>
+<pre><code><span class="cmd">cd</span> ~/Desktop/Self\ Improving\ AI\ Agent\ Workshop
+<span class="cmd">chmod</span> +x scripts/start-langfuse.sh scripts/stop-langfuse.sh
+./scripts/start-langfuse.sh</code></pre>
+  <p>Or directly:</p>
+<pre><code><span class="cmd">cd</span> docker/langfuse
+docker compose --env-file .env up -d</code></pre>
+
+  <table>
+    <caption>Table 4 — endpoints &amp; credentials</caption>
+    <tr><th style="width:180px">What</th><th>Value</th></tr>
+    <tr><td>LangFuse UI</td><td><code>http://localhost:3000</code></td></tr>
+    <tr><td>Login</td><td><code>workshop@parcelco.local</code> / <code>WorkshopDemo1!</code></td></tr>
+    <tr><td>Ports</td><td><strong>3000</strong> UI · <strong>9090</strong> minio · localhost-only DB ports</td></tr>
+  </table>
+
+  <h3>Wire ParcelCo — repo root <code>.env</code></h3>
+<pre><code>LANGFUSE_PUBLIC_KEY=pk-lf-workshop-aa8504fbeda3a221cb5d6a06dd9bd83c
+LANGFUSE_SECRET_KEY=sk-lf-workshop-4bfad518fa4844a0a79e1d3cd0585409
+LANGFUSE_HOST=http://localhost:3000</code></pre>
+  <p>Then restart the Flask app:</p>
+<pre><code><span class="cmd">source</span> .venv/bin/activate
+python -m parcelco.cli serve</code></pre>
+
+  <h3>On the dashboard</h3>
+  <ul class="clean">
+    <li>Stack step <strong>LangFuse</strong> shows connected / Tracing ON when keys + auth work</li>
+    <li><strong>LangFuse traces</strong> panel lists recent ticket traces with <strong>Open trace</strong> links</li>
+    <li><strong>Open LangFuse</strong> opens the UI; the inspector links to that run’s trace</li>
+  </ul>
+  <p class="kfnote">Langfuse sets <code>X-Frame-Options: SAMEORIGIN</code>, so the full UI opens in a tab rather than an iframe.</p>
+
+  <h3>Stop</h3>
+<pre><code>./scripts/stop-langfuse.sh</code></pre>
+
+  <h3>Notes</h3>
+  <ul class="clean">
+    <li>Needs <strong>Docker Desktop</strong> (or Docker Engine + Compose v2)</li>
+    <li>First boot pulls several images (web, worker, postgres, clickhouse, redis, minio) — can take a few minutes</li>
+    <li>Workshop secrets in <code>docker/langfuse/.env</code> are fine for local demos; <strong>rotate before any shared/networked deploy</strong></li>
+  </ul>
+</section>
+
+<!-- ============ 07 · CHEAT SHEET ============ -->
+<section id="cheatsheet">
+  <h2><span class="num">07</span>Cheat Sheet</h2>
+  <p class="lede">Everything you need at the podium, one glance.</p>
+
+  <dl class="pairs">
+    <div>
+      <dt><span class="tag">ENDPOINTS</span></dt>
+      <dd>Dashboard — <code>http://127.0.0.1:5050</code><br>LangFuse UI — <code>http://localhost:3000</code><br>LM Studio (Qwen) — <code>http://127.0.0.1:1234/v1</code></dd>
+    </div>
+    <div>
+      <dt><span class="tag">KEY NUMBERS</span></dt>
+      <dd>Catalog — <strong>1000</strong> tickets · 700 A / 300 B<br>Demo suite — <strong>35</strong> core (20A / 15B)<br>Full suite — 100A / 55B</dd>
+    </div>
+  </dl>
+
+  <h3>Commands</h3>
+<pre><code><span class="cm"># serve the dashboard (live room)</span>
+python -m parcelco.cli serve --suite demo
+
+<span class="cm"># ping Qwen</span>
+python -c "from parcelco.llm import chat_model; print(chat_model().invoke('Reply: pong').content[:40])"
+
+<span class="cm"># verify dataset (expect 1000)</span>
+python -c "from parcelco.data_io import load_tickets; print(len(load_tickets(None, respect_suite=False)))"
+
+<span class="cm"># LangFuse up / down</span>
+./scripts/start-langfuse.sh
+./scripts/stop-langfuse.sh
+
+<span class="cm"># stop everything</span>
+Ctrl+C   <span class="cm"># stops serve + background job</span></code></pre>
+
+  <blockquote class="quote">“One loop. Act, check, heal, reflect, keep only when the numbers say so. Weights stay frozen.”
+    <span class="attr">— Leave them with this</span>
+  </blockquote>
+</section>
+
+<footer>
+  <span>ParcelCo Flywheel · Workshop 1 · Field Guide</span>
+  <span>CONCEPT / WORKSHOP / PRESALES / SPEAKER / LANGFUSE</span>
+</footer>
+
+</main>
+
+<script>
+  // scrollspy
+  const links=[...document.querySelectorAll('nav a')];
+  const secs=links.map(a=>document.querySelector(a.getAttribute('href')));
+  const spy=new IntersectionObserver(es=>{
+    es.forEach(e=>{if(e.isIntersecting){
+      links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));
+    }});
+  },{rootMargin:'-15% 0px -75% 0px'});
+  secs.forEach(s=>spy.observe(s));
+
+  // keyboard navigation — section to section, like slides
+  let idx=0;
+  function go(i){idx=Math.max(0,Math.min(secs.length-1,i));secs[idx].scrollIntoView({behavior:'smooth',block:'start'});}
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key==='PageDown'){e.preventDefault();go(idx+1);}
+    if(e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='PageUp'){e.preventDefault();go(idx-1);}
+    if(e.key==='Home'){e.preventDefault();go(0);}
+    if(e.key==='End'){e.preventDefault();go(secs.length-1);}
+    if(e.key==='p'||e.key==='P'){document.body.classList.toggle('present');}
+  });
+  window.addEventListener('scroll',()=>{
+    const active=document.querySelector('nav a.active');
+    const i=links.indexOf(active);
+    if(i>=0)idx=i;
+  },{passive:true});
+
+  document.getElementById('presentToggle').addEventListener('click',()=>document.body.classList.toggle('present'));
+</script>
+</body>
+</html>
