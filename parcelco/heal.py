@@ -53,10 +53,13 @@ def build_heal_repair_brief(
 
     fix_block = "\n".join(fixes)
     return (
-        f"\n=== STRUCTURED HEAL #{heal_n} (repair, do not apologize for the heal) ===\n"
+        f"\n=== STRUCTURED HEAL #{heal_n} (internal repair — customer never sees this block) ===\n"
         f"Your previous reply failed the harness checklist.\n\n"
         f"PREVIOUS DRAFT:\n---\n{prior}\n---\n\n"
-        f"REQUIRED FIXES:\n{fix_block}\n\n"
+        f"REQUIRED FIXES:\n{fix_block}\n"
+        f"- Write ONLY a normal customer-facing ParcelCo support reply.\n"
+        f"- NEVER mention heals, retries, checklist, attempts, harness, or internal failures.\n"
+        f"- Do not say things like \"failed after 2 heals\" — the customer must not see that.\n\n"
         f"Rewrite the full customer reply from scratch incorporating every fix.\n"
         f"End with a single line: ACTION: refund|deny|escalate|inform\n"
         f"=== END STRUCTURED HEAL ===\n"

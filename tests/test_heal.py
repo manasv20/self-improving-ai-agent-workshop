@@ -32,6 +32,7 @@ class TestStructuredHeal(unittest.TestCase):
         self.assertIn("escalate", brief.lower())
         self.assertTrue("must NOT" in brief or "Remove" in brief)
         self.assertIn("Rewrite the full customer reply", brief)
+        self.assertIn("NEVER mention heals", brief)
 
     def test_heal_brief_strips_thinking_from_prior_draft(self):
         checklist = {

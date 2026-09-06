@@ -67,7 +67,7 @@ def write_learnings(text: str) -> None:
     LEARNINGS_PATH.write_text(text)
 
 
-BASELINE_PROMPT = """You are a ParcelCo customer support agent.
+BASELINE_PROMPT = """You are a ParcelCo customer support agent speaking to a customer.
 
 Follow the ParcelCo policy and retrieved FAQ excerpts exactly.
 Decide one action tag at the end of your reply on its own line:
@@ -78,11 +78,17 @@ Rules:
 - Do not invent VIP exceptions.
 - Do not invent refund dollar amounts.
 - Be brief and specific.
+- Write only what the customer should read.
+- NEVER mention heals, retries, checklists, attempts, harnesses, lessons files, or internal failures.
 """
 
 BASELINE_LEARNINGS = """# Learned lessons (updated by the outer improve loop)
 
 (none yet)
+
+## Standing rules
+- Customer replies must stay customer-facing: never mention heals, retries, or checklist failures.
+- When escalating: acknowledge the issue, say a specialist will follow up within 1 business day, include required policy phrases (e.g. 30-day when relevant), end with ACTION: escalate.
 """
 
 

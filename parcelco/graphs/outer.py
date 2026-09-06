@@ -148,11 +148,28 @@ def _cluster_lessons(failed: list[TicketRunResult]) -> str:
         return "\n".join(summary_lines)
 
 
+_POISON_LESSON = ("failed after", "after 2 heal", "after n heal", "mention heal", "say heal")
+
+
+def _sanitize_lesson_block(block: str) -> str:
+    """Drop Reflect lines that would teach the model to leak harness jargon."""
+    kept: list[str] = []
+    for line in block.splitlines():
+        low = line.lower()
+        if any(p in low for p in _POISON_LESSON):
+            continue
+        kept.append(line)
+    return "\n".join(kept).strip()
+
+
 def _append_learnings(new_block: str, *, heading: str | None = None) -> str:
+    cleaned = _sanitize_lesson_block(new_block)
+    if not cleaned:
+        return read_learnings()
     current = read_learnings().rstrip()
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     title = heading or f"Round lessons ({stamp})"
-    updated = current + f"\n\n## {title}\n{new_block.strip()}\n"
+    updated = current + f"\n\n## {title}\n{cleaned}\n"
     write_learnings(updated)
     return updated
 
@@ -170,12 +187,17 @@ def _lesson_from_single(result: TicketRunResult) -> str:
     if result.passed and result.heal_count > 0:
         task = (
             "Heal succeeded after checklist failure. Write 2-4 durable lessons so the "
-            "agent gets this right on the first try next time. Never mention ticket IDs."
+            "agent gets this right on the first try next time. Never mention ticket IDs. "
+            "Lessons must describe customer-facing policy language only. "
+            "NEVER tell the agent to mention heals, retries, or checklist failures to customers."
         )
     elif not result.passed:
         task = (
             "Ticket still failed after heals. Write 3-6 durable corrective lessons. "
-            "Never mention ticket IDs. Focus on ACTION tags, required phrases, and policy."
+            "Never mention ticket IDs. Focus on correct ACTION tags, required customer-visible "
+            "policy phrases (e.g. 30-day), and escalate/deny/refund wording. "
+            "NEVER invent required phrases about 'failed after N heals' or other harness jargon — "
+            "customers must never see that."
         )
     else:
         return ""
@@ -188,7 +210,10 @@ def _lesson_from_single(result: TicketRunResult) -> str:
                     "role": "system",
                     "content": (
                         "You write short durable support-agent lessons for ParcelCo. "
-                        "Output bullet lessons only. Never mention specific ticket IDs."
+                        "Output bullet lessons only. Never mention specific ticket IDs. "
+                        "Lessons improve customer replies and policy compliance. "
+                        "Forbidden: any lesson that tells the agent to mention heals, retries, "
+                        "checklists, attempts, or internal failures in the customer message."
                     ),
                 },
                 {"role": "user", "content": task + "\n\nSignals:\n" + "\n".join(pattern)},

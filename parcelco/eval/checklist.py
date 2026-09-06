@@ -11,6 +11,19 @@ _ACTION_RE = re.compile(
 # DeepSeek-R1 (and similar) emit chain-of-thought before the customer reply
 _THINK_RE = re.compile(r"<think>[\s\S]*?</think>", re.IGNORECASE)
 
+# Never allowed in customer-facing replies (harness jargon leakage)
+META_FORBIDDEN = (
+    "failed after",
+    "heal",
+    "heals",
+    "checklist",
+    "learnings.md",
+    "structured heal",
+    "attempt 1",
+    "attempt 2",
+    "attempt 3",
+)
+
 
 def strip_reasoning(draft: str) -> str:
     """Drop R1-style thinking blocks so checklist grades the customer-facing reply."""
@@ -34,13 +47,16 @@ def score_draft(draft: str, expected: Expected) -> ChecklistResult:
 
     missing = [m for m in expected.must_include if m.lower() not in lower]
     forbidden_hits = [f for f in expected.must_not if f.lower() in lower]
+    for meta in META_FORBIDDEN:
+        if meta in lower and meta not in [x.lower() for x in forbidden_hits]:
+            forbidden_hits.append(meta)
     action_ok = detected == expected.action
 
     checks: list[bool] = [action_ok]
     if expected.must_include:
         checks.append(not missing)
-    if expected.must_not:
-        checks.append(not forbidden_hits)
+    if forbidden_hits:
+        checks.append(len(forbidden_hits) == 0)
 
     score = sum(1 for ok in checks if ok) / max(len(checks), 1)
     passed = action_ok and not missing and not forbidden_hits
