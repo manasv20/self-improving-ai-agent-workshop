@@ -231,21 +231,27 @@
   <details class="card knowledge-card" id="knowledge-card">
     <summary class="knowledge-summary">
       <strong>What we’re using</strong>
-      <span>Stack · learn vs holdout · policy · FAQ · memory (click to expand)</span>
+      <span>Stack · learn vs holdout · guidelines (policy + FAQ) · memory (click to expand)</span>
     </summary>
     <div class="knowledge-head">
       <div class="knowledge-tabs" role="tablist">
         <button type="button" class="ktab active" data-ktab="stack">Stack</button>
         <button type="button" class="ktab" data-ktab="splits">Learn vs holdout</button>
-        <button type="button" class="ktab" data-ktab="policy">Policy</button>
+        <button type="button" class="ktab" data-ktab="policy">Guidelines</button>
         <button type="button" class="ktab" data-ktab="faq">FAQ</button>
         <button type="button" class="ktab" data-ktab="memory">Memory</button>
       </div>
     </div>
     <div id="ktab-stack" class="ktab-panel active"><ul id="stack-list" class="stack-list"></ul></div>
     <div id="ktab-splits" class="ktab-panel"><div id="splits-box" class="splits-box"></div></div>
-    <div id="ktab-policy" class="ktab-panel"><pre id="policy-text" class="doc-pre">Loading…</pre></div>
-    <div id="ktab-faq" class="ktab-panel"><div id="faq-list" class="faq-list"></div></div>
+    <div id="ktab-policy" class="ktab-panel">
+      <p class="muted path-hint">Frozen RAG ground truth — <code>parcelco/data/policy.md</code> (not updated by Reflect)</p>
+      <pre id="policy-text" class="doc-pre">Loading…</pre>
+    </div>
+    <div id="ktab-faq" class="ktab-panel">
+      <p class="muted path-hint">Frozen FAQ corpus — <code>parcelco/data/faq/*.md</code></p>
+      <div id="faq-list" class="faq-list"></div>
+    </div>
     <div id="ktab-memory" class="ktab-panel">
       <h3>System prompt</h3>
       <pre id="prompt-text" class="doc-pre"></pre>
