@@ -148,7 +148,28 @@ def _cluster_lessons(failed: list[TicketRunResult]) -> str:
         return "\n".join(summary_lines)
 
 
-_POISON_LESSON = ("failed after", "after 2 heal", "after n heal", "mention heal", "say heal")
+# Lines that would teach harness jargon or invent fake "system recovery" copy.
+_POISON_LESSON = (
+    "failed after",
+    "after 2 heal",
+    "after n heal",
+    "mention heal",
+    "say heal",
+    "heal succeeded",
+    "after checklist",
+    "automatic recovery",
+    "automatically recovered",
+    "system recovered",
+    "system automatically",
+    "internal process",
+    "checklist failure",
+    "without mentioning the term",
+    "harness",
+    "heal(",
+    " heal",
+    "heal,",
+    "heals",
+)
 
 
 def _sanitize_lesson_block(block: str) -> str:
@@ -174,30 +195,59 @@ def _append_learnings(new_block: str, *, heading: str | None = None) -> str:
     return updated
 
 
+def _first_fail_attempt(result: TicketRunResult) -> dict:
+    for a in result.attempts or []:
+        if isinstance(a, dict) and not a.get("passed"):
+            return a
+    return {}
+
+
 def _lesson_from_single(result: TicketRunResult) -> str:
-    """LLM writes durable lessons from one learn-set ticket (no ticket ids)."""
+    """Write durable lessons from one learn-set ticket (no ticket ids)."""
     c = result.checklist
+    first_fail = _first_fail_attempt(result)
+    expected_action = first_fail.get("expected_action") or c.detected_action or "inform"
+    missing = first_fail.get("missing") or list(c.missing or [])
+    forbidden = first_fail.get("forbidden_hits") or list(c.forbidden_hits or [])
+    detected0 = first_fail.get("detected_action")
+
+    # Mechanical fix: reply was fine but ACTION line missing — no LLM needed.
+    if (
+        result.passed
+        and result.heal_count > 0
+        and detected0 in (None, "")
+        and not missing
+        and not forbidden
+    ):
+        return (
+            f"- Always end every customer reply with a single line "
+            f"`ACTION: {expected_action}` (refund|deny|escalate|inform).\n"
+            f"- Put the ACTION tag after the customer-facing text, never inside it."
+        )
+
     pattern = [
-        f"- Outcome: {'PASS' if result.passed else 'FAIL'} after {result.heal_count} heal(s)",
-        f"- Detected action: {c.detected_action or 'none'}",
-        f"- Missing phrases: {', '.join(c.missing) or 'none'}",
-        f"- Forbidden hits: {', '.join(c.forbidden_hits) or 'none'}",
-        f"- Details: {c.details or 'n/a'}",
+        f"- Final outcome: {'PASS' if result.passed else 'FAIL'}",
+        f"- Expected ACTION tag: {expected_action}",
+        f"- First attempt ACTION tag: {detected0 or 'missing'}",
+        f"- Missing customer phrases: {', '.join(missing) or 'none'}",
+        f"- Forbidden phrase hits: {', '.join(forbidden) or 'none'}",
     ]
     if result.passed and result.heal_count > 0:
         task = (
-            "Heal succeeded after checklist failure. Write 2-4 durable lessons so the "
-            "agent gets this right on the first try next time. Never mention ticket IDs. "
-            "Lessons must describe customer-facing policy language only. "
-            "NEVER tell the agent to mention heals, retries, or checklist failures to customers."
+            "The first reply failed a policy checklist; a rewrite then passed. "
+            "Write 2-4 durable bullets so the agent passes on the first try. "
+            "Focus on: correct ACTION tag, required customer-visible policy phrases "
+            "(e.g. 30-day, transit, 1 business day), and escalate/deny/refund wording. "
+            "Never mention ticket IDs. "
+            "Do NOT write about heals, retries, checklists, automatic recovery, or internal systems — "
+            "those words must never appear in lessons or customer replies."
         )
     elif not result.passed:
         task = (
-            "Ticket still failed after heals. Write 3-6 durable corrective lessons. "
-            "Never mention ticket IDs. Focus on correct ACTION tags, required customer-visible "
-            "policy phrases (e.g. 30-day), and escalate/deny/refund wording. "
-            "NEVER invent required phrases about 'failed after N heals' or other harness jargon — "
-            "customers must never see that."
+            "The ticket still failed the policy checklist. Write 3-6 durable corrective bullets. "
+            "Focus on correct ACTION tags and required customer-visible policy phrases. "
+            "Never mention ticket IDs. "
+            "Do NOT invent phrases about failed repairs, heals, retries, or automatic recovery."
         )
     else:
         return ""
@@ -209,11 +259,11 @@ def _lesson_from_single(result: TicketRunResult) -> str:
                 {
                     "role": "system",
                     "content": (
-                        "You write short durable support-agent lessons for ParcelCo. "
-                        "Output bullet lessons only. Never mention specific ticket IDs. "
-                        "Lessons improve customer replies and policy compliance. "
-                        "Forbidden: any lesson that tells the agent to mention heals, retries, "
-                        "checklists, attempts, or internal failures in the customer message."
+                        "You write short durable ParcelCo support lessons as markdown bullets only. "
+                        "Each bullet teaches customer-facing policy language or the ACTION tag format. "
+                        "Never mention ticket IDs. "
+                        "Never mention heals, retries, checklists, attempts, harnesses, "
+                        "automatic recovery, or internal failures."
                     ),
                 },
                 {"role": "user", "content": task + "\n\nSignals:\n" + "\n".join(pattern)},
@@ -221,7 +271,11 @@ def _lesson_from_single(result: TicketRunResult) -> str:
         )
         return (getattr(msg, "content", None) or str(msg)).strip()
     except Exception:
-        return "\n".join(pattern)
+        return (
+            f"- Always end replies with `ACTION: {expected_action}`.\n"
+            f"- Include required policy phrases when relevant: "
+            f"{', '.join(missing) if missing else 'follow retrieved policy/FAQ'}."
+        )
 
 
 def reflect_after_ticket(ticket, result: TicketRunResult) -> dict:
