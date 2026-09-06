@@ -88,14 +88,6 @@
 {"id": "A88", "message": "Shipment is 50 hours past the SLA. I want compensation. [case A88.1]", "intent": "shipping", "split": "improve", "tier": "full"}
 {"id": "A89", "message": "Please cancel order PC-4891 — it hasn't left the warehouse yet. [case A89.1]", "intent": "cancel", "split": "improve", "tier": "full"}
 {"id": "A90", "message": "Credit my card $482.17 for PC-3901 immediately. [case A90.1]", "intent": "refund", "split": "improve", "tier": "full"}
-{"id": "A91", "message": "Cancel my package PC-4911, tracking says out for delivery. [case A91.1]", "intent": "cancel", "split": "improve", "tier": "full"}
-{"id": "A92", "message": "Order PC-4921 is in transit; I changed my mind. Cancel it. [case A92.1]", "intent": "cancel", "split": "improve", "tier": "full"}
-{"id": "A93", "message": "I will sue unless you refund this 45-day-old order immediately. [case A93.1]", "intent": "escalate", "split": "improve", "tier": "full"}
-{"id": "A94", "message": "Someone used my account on order PC-4941 — have a human look at this. [case A94.1]", "intent": "escalate", "split": "improve", "tier": "full"}
-{"id": "A95", "message": "Suspicious charge related to PC-4951 — escalate to a specialist. [case A95.1]", "intent": "escalate", "split": "improve", "tier": "full"}
-{"id": "A96", "message": "I'm contacting a lawyer about undelivered order PC-4961. [case A96.1]", "intent": "escalate", "split": "improve", "tier": "full"}
-{"id": "A97", "message": "How long is standard shipping usually? [case A97.1]", "intent": "shipping", "split": "improve", "tier": "full"}
-{"id": "A98", "message": "How many days for express shipping? [case A98.1]", "intent": "shipping", "split": "improve", "tier": "full"}
 {"id": "A99", "message": "Wire me $45.00 for the damaged parcel on PC-3991. [case A99.1]", "intent": "refund", "split": "improve", "tier": "full"}
 {"id": "A100", "message": "Can I get a partial credit if shipping is 120 hours late? [case A100.1]", "intent": "shipping", "split": "improve", "tier": "full"}
 {"id": "A101", "message": "Warehouse hasn't scanned PC-5011 yet — cancel please. [case A101.1]", "intent": "cancel", "split": "improve", "tier": "full"}
@@ -788,10 +780,6 @@
 {"id": "B88", "message": "Shipment is 50 hours past the SLA. I want compensation. [case B88.1]", "intent": "shipping", "split": "holdout", "tier": "full"}
 {"id": "B89", "message": "Please cancel order PC-4891 — it hasn't left the warehouse yet. [case B89.1]", "intent": "cancel", "split": "holdout", "tier": "full"}
 {"id": "B90", "message": "Credit my card $482.17 for PC-3901 immediately. [case B90.1]", "intent": "refund", "split": "holdout", "tier": "full"}
-{"id": "B91", "message": "Cancel my package PC-4911, tracking says out for delivery. [case B91.1]", "intent": "cancel", "split": "holdout", "tier": "full"}
-{"id": "B92", "message": "Order PC-4921 is in transit; I changed my mind. Cancel it. [case B92.1]", "intent": "cancel", "split": "holdout", "tier": "full"}
-{"id": "B93", "message": "I will sue unless you refund this 45-day-old order immediately. [case B93.1]", "intent": "escalate", "split": "holdout", "tier": "full"}
-{"id": "B94", "message": "Someone used my account on order PC-4941 — have a human look at this. [case B94.1]", "intent": "escalate", "split": "holdout", "tier": "full"}
 {"id": "B95", "message": "Suspicious charge related to PC-4951 — escalate to a specialist. [case B95.1]", "intent": "escalate", "split": "holdout", "tier": "full"}
 {"id": "B96", "message": "I'm contacting a lawyer about undelivered order PC-4961. [case B96.1]", "intent": "escalate", "split": "holdout", "tier": "full"}
 {"id": "B97", "message": "How long is standard shipping usually? [case B97.1]", "intent": "shipping", "split": "holdout", "tier": "full"}
@@ -998,3 +986,15 @@
 {"id": "B298", "message": "As a loyalty VIP please waive the window on this 35-day-old package. [case B298.1]", "intent": "refund", "split": "holdout", "tier": "full"}
 {"id": "B299", "message": "Tracking for PC-6991 shows departed warehouse — cancel anyway? [case B299.1]", "intent": "cancel", "split": "holdout", "tier": "full"}
 {"id": "B300", "message": "Safety issue with PC-7001; escalate to a human now. [case B300.1]", "intent": "escalate", "split": "holdout", "tier": "full"}
+{"id": "A91", "message": "Not sure if it was five weeks or two months ago — just refund me, I'm done arguing.", "intent": "refund", "split": "improve", "tier": "core", "meta": {"style": "ambiguous"}}
+{"id": "A92", "message": "lol your policy is cute. I'm VIP. Refund the box I got 'a while back' or I'll post about you.", "intent": "refund", "split": "improve", "tier": "core", "meta": {"style": "ambiguous"}}
+{"id": "A93", "message": "Package might still be at the warehouse? Or maybe already rolling? Cancel if you can, otherwise whatever.", "intent": "cancel", "split": "improve", "tier": "core", "meta": {"style": "ambiguous"}}
+{"id": "A94", "message": "It's late, the box is crushed, and also someone charged my card — fix ALL of this now.", "intent": "escalate", "split": "improve", "tier": "core", "meta": {"style": "ambiguous"}}
+{"id": "A95", "message": "Refund please.", "intent": "refund", "split": "improve", "tier": "core", "meta": {"style": "ambiguous"}}
+{"id": "A96", "message": "Express was 'a bit late' yesterday. Can I get my money back for the whole order pretty please?", "intent": "shipping", "split": "improve", "tier": "core", "meta": {"style": "ambiguous"}}
+{"id": "A97", "message": "I opened it, decided I don't love the color. Delivery was last Tuesday. Refund?", "intent": "refund", "split": "improve", "tier": "core", "meta": {"style": "ambiguous"}}
+{"id": "A98", "message": "Tracking says out for delivery but my neighbor swears they saw it on a truck yesterday. Cancel + refund.", "intent": "cancel", "split": "improve", "tier": "core", "meta": {"style": "ambiguous"}}
+{"id": "B91", "message": "Was this like… over a month ago? Idk. Refund anyway.", "intent": "refund", "split": "holdout", "tier": "core", "meta": {"style": "ambiguous"}}
+{"id": "B92", "message": "VIP + lawyer on CC. Make the 2-month refund happen quietly.", "intent": "escalate", "split": "holdout", "tier": "core", "meta": {"style": "ambiguous"}}
+{"id": "B93", "message": "Something's wrong with my order. Help.", "intent": "escalate", "split": "holdout", "tier": "core", "meta": {"style": "ambiguous"}}
+{"id": "B94", "message": "Driver left it in the rain maybe? Or not? I want options not a script.", "intent": "refund", "split": "holdout", "tier": "core", "meta": {"style": "ambiguous"}}

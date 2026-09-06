@@ -70,19 +70,28 @@ AMOUNT = [
 
 
 def _load_core() -> list[dict]:
+    """Keep every hand-labeled core ticket (classic A01–A20/B01–B15 + ambiguous A91+/B91+)."""
     core: list[dict] = []
     for line in TICKETS.read_text().splitlines():
         if not line.strip():
             continue
         t = json.loads(line)
         tid = t["id"]
-        if tid.startswith("A") and tid[1:].isdigit() and 1 <= int(tid[1:]) <= 20:
+        classic_a = tid.startswith("A") and tid[1:].isdigit() and 1 <= int(tid[1:]) <= 20
+        classic_b = tid.startswith("B") and tid[1:].isdigit() and 1 <= int(tid[1:]) <= 15
+        ambiguous = tid.startswith(("A9", "B9")) and tid[1:].isdigit() and int(tid[1:]) >= 91
+        if classic_a or classic_b or ambiguous or t.get("tier") == "core":
             t["tier"] = "core"
             core.append(t)
-        elif tid.startswith("B") and tid[1:].isdigit() and 1 <= int(tid[1:]) <= 15:
-            t["tier"] = "core"
-            core.append(t)
-    return core
+    # de-dupe by id, preserve order
+    seen: set[str] = set()
+    out: list[dict] = []
+    for t in core:
+        if t["id"] in seen:
+            continue
+        seen.add(t["id"])
+        out.append(t)
+    return out
 
 
 def _gen(prefix: str, start: int, end: int, split: str) -> tuple[list[dict], list[dict]]:

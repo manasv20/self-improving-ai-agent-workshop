@@ -1,7 +1,17 @@
 {
   "ticket_id": "A96",
+  "action": "inform",
   "must_include": [],
-  "must_not": [],
-  "action": "escalate",
-  "notes": "lawyer"
+  "must_include_any": [
+    [
+      "48",
+      "48-hour",
+      "48 hour"
+    ]
+  ],
+  "must_not": [
+    "full refund approved"
+  ],
+  "notes": "vague short delay \u2014 inform, no auto full refund",
+  "difficulty": "ambiguous"
 }

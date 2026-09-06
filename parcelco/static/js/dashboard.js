@@ -195,9 +195,10 @@
     for (const t of state.tickets) {
       const li = document.createElement("li");
       li.className = t.id === state.selectedId ? "selected" : "";
+      const diff = t.difficulty && t.difficulty !== "easy" ? ` · ${t.difficulty}` : "";
       li.innerHTML = `
         <span class="tid">${t.id}</span>
-        <span class="split">${t.split === "improve" ? "learn" : "hold"} · ${t.intent}</span>
+        <span class="split">${t.split === "improve" ? "learn" : "hold"} · ${t.intent}${diff}</span>
         <p class="preview">${t.preview}</p>`;
       li.onclick = () => selectTicket(t.id);
       list.appendChild(li);
@@ -216,7 +217,7 @@
     const t = data.ticket;
     const e = data.expected || {};
     el("sel-id").textContent = t.id;
-    el("sel-meta").textContent = `${t.split} · ${t.intent}${e.action ? ` · want ${e.action}` : ""}`;
+    el("sel-meta").textContent = `${t.split} · ${t.intent}${e.difficulty && e.difficulty !== "easy" ? ` · ${e.difficulty}` : ""}${e.action ? ` · want ${e.action}` : ""}`;
     el("sel-message").textContent = t.message;
     el("sel-action").textContent = e.action || "—";
     el("sel-notes").textContent = e.notes || "—";

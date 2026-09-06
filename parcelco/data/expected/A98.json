@@ -1,9 +1,18 @@
 {
   "ticket_id": "A98",
-  "must_include": [
-    "1"
-  ],
-  "must_not": [],
   "action": "inform",
-  "notes": "faq express"
+  "must_include": [],
+  "must_include_any": [
+    [
+      "transit",
+      "out for delivery",
+      "in transit"
+    ]
+  ],
+  "must_not": [
+    "cancelled your order",
+    "full refund approved"
+  ],
+  "notes": "in transit \u2014 cannot cancel; inform",
+  "difficulty": "ambiguous"
 }

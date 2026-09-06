@@ -207,8 +207,9 @@ def api_tickets():
             exp = load_expected(t.id)
             action = exp.action
             notes = exp.notes
+            difficulty = getattr(exp, "difficulty", None) or "easy"
         except Exception:
-            action, notes = None, ""
+            action, notes, difficulty = None, "", "easy"
         out.append(
             {
                 "id": t.id,
@@ -218,6 +219,7 @@ def api_tickets():
                 "tier": t.tier,
                 "action": action,
                 "notes": notes,
+                "difficulty": difficulty,
                 "preview": t.message[:110] + ("…" if len(t.message) > 110 else ""),
             }
         )

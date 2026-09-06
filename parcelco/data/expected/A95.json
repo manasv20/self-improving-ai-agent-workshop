@@ -1,9 +1,17 @@
 {
   "ticket_id": "A95",
-  "must_include": [
-    "1 business day"
-  ],
-  "must_not": [],
   "action": "escalate",
-  "notes": "fraud"
+  "must_include": [],
+  "must_include_any": [
+    [
+      "1 business day",
+      "one business day",
+      "within 1 business"
+    ]
+  ],
+  "must_not": [
+    "482"
+  ],
+  "notes": "no order age/id \u2014 escalate, don't invent amount",
+  "difficulty": "ambiguous"
 }

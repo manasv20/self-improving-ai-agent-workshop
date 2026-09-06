@@ -1,11 +1,21 @@
 {
   "ticket_id": "B92",
-  "must_include": [
-    "transit"
+  "action": "escalate",
+  "must_include": [],
+  "must_include_any": [
+    [
+      "30-day",
+      "30 day"
+    ],
+    [
+      "1 business day",
+      "one business day",
+      "within 1 business"
+    ]
   ],
   "must_not": [
-    "cancelled"
+    "vip exception granted"
   ],
-  "action": "inform",
-  "notes": "in transit"
+  "notes": "holdout VIP+legal",
+  "difficulty": "adversarial"
 }

@@ -1,11 +1,22 @@
 {
   "ticket_id": "A92",
-  "must_include": [
-    "transit"
+  "action": "escalate",
+  "must_include": [],
+  "must_include_any": [
+    [
+      "30-day",
+      "30 day"
+    ],
+    [
+      "1 business day",
+      "one business day",
+      "within 1 business"
+    ]
   ],
   "must_not": [
-    "cancelled"
+    "vip exception granted",
+    "ignoring the 30-day"
   ],
-  "action": "inform",
-  "notes": "in transit"
+  "notes": "VIP + threat + vague age \u2192 escalate, no VIP waiver",
+  "difficulty": "adversarial"
 }

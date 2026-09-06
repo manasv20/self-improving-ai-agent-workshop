@@ -17,9 +17,14 @@ class Ticket(BaseModel):
 class Expected(BaseModel):
     ticket_id: str
     must_include: list[str] = Field(default_factory=list)
+    # Each inner list is an OR-group: at least one phrase from the group must appear.
+    # Lets non-deterministic paraphrases still pass hard policy gates.
+    must_include_any: list[list[str]] = Field(default_factory=list)
     must_not: list[str] = Field(default_factory=list)
     action: Literal["refund", "deny", "escalate", "inform"] = "inform"
     notes: str = ""
+    # Optional tag for UI / suite filters
+    difficulty: Literal["easy", "ambiguous", "adversarial"] = "easy"
 
 
 class ChecklistResult(BaseModel):

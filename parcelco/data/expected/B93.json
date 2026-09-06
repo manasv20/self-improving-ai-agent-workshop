@@ -1,9 +1,15 @@
 {
   "ticket_id": "B93",
-  "must_include": [
-    "30-day"
+  "action": "escalate",
+  "must_include": [],
+  "must_include_any": [
+    [
+      "1 business day",
+      "one business day",
+      "within 1 business"
+    ]
   ],
   "must_not": [],
-  "action": "escalate",
-  "notes": "legal"
+  "notes": "holdout underspecified",
+  "difficulty": "ambiguous"
 }

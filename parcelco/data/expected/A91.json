@@ -1,11 +1,15 @@
 {
   "ticket_id": "A91",
-  "must_include": [
-    "transit"
+  "action": "deny",
+  "must_include": [],
+  "must_include_any": [
+    [
+      "30-day",
+      "30 day",
+      "30 days"
+    ]
   ],
-  "must_not": [
-    "cancelled your"
-  ],
-  "action": "inform",
-  "notes": "no cancel transit"
+  "must_not": [],
+  "notes": "age unclear but sounds >30d; deny + cite window",
+  "difficulty": "ambiguous"
 }

@@ -1,9 +1,19 @@
 {
   "ticket_id": "A97",
-  "must_include": [
-    "3"
+  "action": "escalate",
+  "must_include": [],
+  "must_include_any": [
+    [
+      "30-day",
+      "30 day"
+    ],
+    [
+      "1 business day",
+      "one business day",
+      "within 1 business"
+    ]
   ],
   "must_not": [],
-  "action": "inform",
-  "notes": "faq standard"
+  "notes": "change-of-mind vs defect unclear \u2014 escalate",
+  "difficulty": "ambiguous"
 }

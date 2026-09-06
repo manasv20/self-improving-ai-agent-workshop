@@ -1,9 +1,17 @@
 {
   "ticket_id": "A93",
-  "must_include": [
-    "30-day"
-  ],
-  "must_not": [],
   "action": "escalate",
-  "notes": "legal"
+  "must_include": [],
+  "must_include_any": [
+    [
+      "1 business day",
+      "one business day",
+      "within 1 business"
+    ]
+  ],
+  "must_not": [
+    "cancelled your order"
+  ],
+  "notes": "status unclear \u2192 escalate rather than invent cancel",
+  "difficulty": "ambiguous"
 }
