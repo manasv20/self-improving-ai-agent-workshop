@@ -1,34 +1,77 @@
-# Speaker notes — Workshop 1 (one loop, build-along)
+# Facilitator notes
 
-Curriculum: [WORKSHOP.md](WORKSHOP.md) · Concept: [CONCEPT.md](CONCEPT.md)
+[Visual guide](index.html) · [Exercises](WORKSHOP.md) · [Setup](SETUP.md)
 
-## Open with the mismatch fix (2 min)
+Teach participants to inspect a result and explain it. A pass, a failed retry, and a reverted lesson are all useful outcomes.
 
-> It’s not two systems. It’s **one loop**: retrieve → generate → evaluate → heal → reflect → keep/revert.
+## Before people arrive
 
-Then open the dashboard teach strip and leave it up the whole session.
+- Open the visual guide and the dashboard in separate tabs. The guide's **Presentation view** enlarges it for a projector; **Print / save PDF** gives participants a handout.
+- Rehearse A01, A02, and A03 using your actual model. Keep a real reply and its attempt details as a backup; label any recording with the settings used.
+- Confirm **Demo: 28 learn / 19 holdout / 47 total**. The old 35-ticket count predates the ambiguous examples.
+- Decide whether participants are running locally or following your screen. Pair people who are still installing with someone who is ready.
+- Back up any memory/history you want before using **Reset memory**. The checkout contains earlier demo lessons; reset restores the built-in standing rules and clears local history.
+- Time a batch round before the event. Prepare the offline gate exercise if it exceeds your session budget.
+- Leave Langfuse off unless you have verified it beforehand. It is optional.
 
-## Setup
+## A 60-minute session
 
-- Qwen in LM Studio  
-- `python -m parcelco.cli serve --suite demo`  
-- Optional LangFuse  
+| Minutes | Activity | Ask the room |
+|---|---|---|
+| 0–5 | Explain the task; show the policy and one customer ticket | “What action should the agent take?” |
+| 5–12 | Exercise 1: predict A01/A02/A03; run one | “What policy supports that answer?” |
+| 12–22 | Exercise 2: grade the two A02 replies | “What changed besides the wording?” |
+| 22–37 | Exercise 3: inspect a retry and a saved lesson | “What feedback did the next draft receive?” |
+| 37–50 | Exercise 4: use the gate graph; show a rehearsed or live batch if ready | “Would you keep this candidate? Calculate both rates.” |
+| 50–60 | Discuss evaluation limits and take questions | “What would you measure before trusting this with real customers?” |
 
-## Script
+With 75 minutes, give pairs ten more minutes for code checkpoints and five for optional trace inspection. Installation should happen before the session, not consume the opening block.
 
-1. Pick ticket from the **1000**-ticket catalog (demo filters to core 35)  
-2. **Run loop on ticket** — narrate each node as it lights  
-3. Hard ticket → show **Loop attempts** (heal)  
-4. **Score suite** / **Learn** — Reflect node + where it was → now  
-5. LangFuse trace (optional)  
+## Opening words
 
-## Say this
+> “We’re helping a fictional delivery company answer support tickets. First we'll decide what a good reply should do. Then we'll watch a model draft, a checklist check, and a retry use that feedback. Finally we'll look at what gets saved for the next ticket.”
 
-- Heal = retry step in the **same** loop  
-- Learn set vs holdout = proof we didn’t memorize  
-- Weights frozen; memory gated  
+Point at the visual guide's workflow. Explain only the terms needed now: **retrieve** means find policy text; **heal** means retry with specific feedback; **reflect** means write a lesson.
 
-## Pitfalls
+## What to point at on screen
 
-- Full suite feels stuck on 4B — use `--suite demo`  
-- Ctrl+C stops serve + background job  
+1. **Pick → Demo → Learn**, choose A01, then **Run this ticket**.
+2. Show the reply, detected action, and pass/fail. A01 should request `refund`; actual output may fail.
+3. Run A02 or A03. If it retries, pause at **Heal trail** and read the concrete failure.
+4. Read **Reflect lesson** and the **Memory** tab. A saved lesson here has **not** been tested by the batch gate.
+5. Run a holdout ticket to show reflection being skipped. Explain that its retries can still use expected-label feedback.
+6. Expand **Optional · suite proof (Score / Learn / Reset)** only when ready to explain batch scoring. Set rounds to **1**.
+
+If you will compare batch scores, reset/back up before the comparison and avoid single-ticket runs between measurements. **Learn + keep/revert** calculates a fresh starting score of its own. Use the kept/reverted column to distinguish candidates from accepted memory; the history chart includes rejected candidates too.
+
+## If the demo takes an unexpected turn
+
+| What happens | Keep teaching with… |
+|---|---|
+| Model does not connect | Exercise 1 and the offline checklist example. One facilitator can troubleshoot while pairs predict. |
+| Every ticket passes first try | The constructed A02 walkthrough in the guide. Clearly say it is an example, not a captured run. |
+| A reply still fails after retries | Ask whether the failure is policy reasoning, output format, or a missing phrase. The limit is doing its job. |
+| No lesson appears | Check for a clean first-attempt pass, a holdout ticket, or an empty/filtered lesson. |
+| A batch candidate is reverted | Calculate A gain and B drop together. The learning objective is to understand the decision. |
+| A suite is too slow | Use the graph exercise. Stop the app with Ctrl+C if needed; inspect/reset provisional memory before restarting a comparison. |
+| Scores look mixed across runs | Old history remains until reset. Do not compare different suites or settings as a memory-only experiment. |
+
+## Be precise about the evidence
+
+Say: “The instructions changed; the model weights stayed fixed.”
+
+Say: “This score describes a checklist-based workflow with label-assisted retries.” The expected action and missing phrases can be supplied during repair, including on B.
+
+Say: “B is excluded from durable lesson writing, but participates in candidate selection.” It is a validation signal, not proof against memorization.
+
+Say: “Single-ticket KEEP means saved. Batch KEEP means both configured thresholds passed.” The default B tolerance allows a five-percentage-point drop, not necessarily zero regression.
+
+Avoid promising improvement, fixed runtime, production readiness, or comprehensive quality coverage. Ask participants which failure they would add to the evaluation next.
+
+## Optional trace stop · 5 minutes
+
+With [Langfuse configured](LANGFUSE_DOCKER.md), open the selected ticket's trace link. Compare generation count to the attempt trail: two heals should correspond to three generations. Look at checklist scores alongside the reply. Trace ingestion may lag; “not yet verified” is not itself a policy failure.
+
+## Close with a check for understanding
+
+Have each pair explain one retry and one gate decision. Ask what they would need for a stronger test: an untouched test set, first-attempt scores, human review of meaning, or broader customer scenarios. Collect those ideas before discussing any future fine-tuning session.

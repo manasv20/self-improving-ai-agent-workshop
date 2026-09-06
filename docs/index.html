@@ -1,766 +1,322 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ParcelCo Flywheel — Workshop 1 Field Guide</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A practical workshop guide to AI agents that retrieve, draft, check, retry, and save lessons. Includes exercises, diagrams, and an interactive keep/revert graph.">
+<meta name="theme-color" content="#153be0">
+<title>ParcelCo — AI agent workshop guide</title>
 <style>
-  /* ─────────────────────────────────────────────
-     Design direction: printed technical field guide.
-     White paper, warm off-black ink, one burnt-orange
-     accent. Square corners, hairline rules, mono
-     indices, serif display. No gradients, no shadows,
-     no rounded cards, no decorative color.
-     ───────────────────────────────────────────── */
-  :root{
-    --paper:#ffffff;
-    --bone:#f7f5f0;
-    --ink:#1a1812;
-    --ink-2:#57534a;
-    --ink-3:#8a857a;
-    --rule:#e3ded2;
-    --rule-strong:#1a1812;
-    --accent:#bf3f0c;          /* burnt orange — functional highlight */
-    --ok:#1f6a44;             /* deep green — semantic only */
-    --bad:#a31f14;            /* brick red — semantic only */
-    --ochre:#8a6b12;          /* warning — semantic only */
-    --sans:"Helvetica Neue",Helvetica,Arial,sans-serif;
-    --serif:Georgia,"Times New Roman",serif;
-    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
-    --fs:16px;
-  }
-  *{margin:0;padding:0;box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} }
-  body{
-    background:var(--paper);color:var(--ink);
-    font:var(--fs)/1.62 var(--sans);
-    font-feature-settings:"liga";
-    display:flex;min-height:100vh;
-    -webkit-font-smoothing:antialiased;
-  }
-  body.present{--fs:20px}
-  ::selection{background:var(--accent);color:#fff}
-  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-
-  /* ---------- TOC rail ---------- */
-  nav{
-    position:fixed;top:0;left:0;bottom:0;width:248px;
-    padding:34px 26px;background:var(--paper);
-    border-right:1px solid var(--rule);
-    display:flex;flex-direction:column;z-index:10;
-  }
-  nav .docno{font-family:var(--mono);font-size:.62rem;letter-spacing:.18em;color:var(--ink-3);text-transform:uppercase}
-  nav .brand{font-family:var(--serif);font-size:1.35rem;font-weight:700;letter-spacing:-.01em;margin:6px 0 2px}
-  nav .brand em{font-style:italic;color:var(--accent)}
-  nav .sub{font-size:.74rem;color:var(--ink-2);line-height:1.5;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--rule-strong)}
-  nav a{
-    display:flex;align-items:baseline;gap:10px;
-    color:var(--ink-2);text-decoration:none;
-    padding:7px 2px;font-size:.86rem;border-bottom:1px solid var(--rule);
-  }
-  nav a .idx{font-family:var(--mono);font-size:.64rem;color:var(--ink-3)}
-  nav a:hover{color:var(--ink);background:var(--bone)}
-  nav a.active{color:var(--ink);font-weight:600}
-  nav a.active .idx{color:var(--accent)}
-  nav .foot{margin-top:auto;padding-top:18px;border-top:1px solid var(--rule);font-size:.7rem;color:var(--ink-3);line-height:1.8}
-  nav .foot kbd{font-family:var(--mono);font-size:.62rem;border:1px solid var(--rule-strong);padding:0 5px;color:var(--ink)}
-  nav .toggle{
-    margin-top:12px;background:var(--paper);border:1px solid var(--rule-strong);
-    color:var(--ink);padding:7px 10px;font-family:var(--mono);font-size:.66rem;
-    letter-spacing:.08em;text-transform:uppercase;cursor:pointer;text-align:left;
-  }
-  nav .toggle:hover{background:var(--ink);color:#fff}
-
-  main{margin-left:248px;flex:1;max-width:1060px;padding:0 56px 140px}
-  section{padding-top:64px;border-top:1px solid var(--rule);margin-top:24px}
-  section:first-of-type{border-top:none;margin-top:0;padding-top:44px}
-
-  /* ---------- masthead ---------- */
-  .masthead{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--rule-strong);padding-bottom:10px;font-family:var(--mono);font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)}
-  h1{
-    font-family:var(--serif);font-weight:700;
-    font-size:clamp(2.6rem,5.4vw,4.1rem);
-    line-height:1.04;letter-spacing:-.022em;text-wrap:balance;
-    margin:34px 0 18px;
-  }
-  h1 em{font-style:italic;color:var(--accent)}
-  .lede{font-family:var(--serif);font-size:1.14rem;line-height:1.6;color:var(--ink-2);max-width:62ch;margin-bottom:34px;text-wrap:pretty}
-  .lede strong{color:var(--ink)}
-
-  h2{
-    font-family:var(--serif);font-size:1.85rem;font-weight:700;
-    letter-spacing:-.015em;text-wrap:balance;
-    display:flex;align-items:baseline;gap:16px;margin-bottom:8px;
-  }
-  h2 .num{font-family:var(--mono);font-size:.95rem;font-weight:400;color:var(--accent);letter-spacing:0}
-  h3{
-    font-family:var(--mono);font-size:.7rem;font-weight:400;
-    letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2);
-    margin:38px 0 14px;padding-top:12px;border-top:1px solid var(--rule-strong);
-  }
-  p{margin-bottom:12px}
-  strong{font-weight:600}
-  a{color:var(--accent);text-underline-offset:3px}
-
-  /* ---------- loop equation strip ---------- */
-  .loopline{
-    display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;
-    font-family:var(--mono);font-size:.92rem;
-    border:1px solid var(--rule-strong);padding:16px 20px;margin:0 0 40px;
-    background:var(--bone);
-  }
-  .loopline .st{font-weight:600}
-  .loopline .ar{color:var(--ink-3)}
-  .loopline .dec{color:var(--accent);font-weight:600}
-
-  /* ---------- stat row: asymmetric, tabular ---------- */
-  .stats{
-    display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;
-    border:1px solid var(--rule-strong);margin-bottom:36px;
-  }
-  .stat{padding:18px 20px;border-right:1px solid var(--rule)}
-  .stat:last-child{border-right:none}
-  .stat:first-child{background:var(--ink);color:var(--paper)}
-  .stat .big{
-    font-family:var(--serif);font-size:2.1rem;line-height:1;font-weight:700;
-    font-variant-numeric:tabular-nums;letter-spacing:-.02em;
-  }
-  .stat:first-child .big{color:var(--paper)}
-  .stat .big span{color:var(--accent)}
-  .stat:first-child .big span{color:var(--accent);filter:brightness(1.6)}
-  .stat .lbl{font-size:.8rem;font-weight:600;margin-top:7px}
-  .stat .sub2{font-size:.72rem;color:var(--ink-3);margin-top:2px;line-height:1.45}
-  .stat:first-child .sub2{color:#b9b4a8}
-
-  /* ---------- pull quote ---------- */
-  .quote{
-    font-family:var(--serif);font-style:italic;font-size:1.32rem;line-height:1.5;
-    letter-spacing:-.005em;text-wrap:pretty;
-    border-left:3px solid var(--accent);padding:6px 0 6px 22px;margin:30px 0;
-    max-width:56ch;
-  }
-  .quote .attr{display:block;font-family:var(--mono);font-style:normal;font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-top:10px}
-
-  /* ---------- schematic loop diagram ---------- */
-  .schematic{border:1px solid var(--rule-strong);padding:28px 26px 22px;margin:6px 0 6px;background:var(--paper)}
-  .schematic .cap{font-family:var(--mono);font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);margin-bottom:20px}
-  .flowrow{display:grid;grid-template-columns:1fr 34px 1fr 34px 1fr 34px 1fr;align-items:stretch}
-  .flowrow2{display:grid;grid-template-columns:1fr 34px 1fr 34px 1fr;align-items:stretch;margin-top:26px}
-  .node{border:1px solid var(--rule-strong);padding:13px 14px 12px;position:relative;background:var(--paper)}
-  .node .no{font-family:var(--mono);font-size:.58rem;color:var(--ink-3);letter-spacing:.14em}
-  .node .t{font-weight:700;font-size:.98rem;margin-top:2px;letter-spacing:-.01em}
-  .node .d{font-size:.72rem;color:var(--ink-2);margin-top:4px;line-height:1.45}
-  .node.decision{border-width:2px;border-color:var(--accent)}
-  .node.decision .t{color:var(--accent)}
-  .node.terminal{background:var(--bone)}
-  .conn{display:flex;align-items:center;justify-content:center;font-family:var(--mono);color:var(--ink-2);font-size:1.05rem;position:relative}
-  .conn small{
-    position:absolute;top:calc(50% + 14px);left:50%;transform:translateX(-50%);
-    font-size:.55rem;letter-spacing:.06em;color:var(--bad);white-space:nowrap;
-  }
-  .loopback{
-    display:flex;align-items:center;gap:12px;margin-top:16px;
-    border-top:1px dashed var(--bad);padding:9px 2px 0;
-    font-family:var(--mono);font-size:.66rem;color:var(--bad);letter-spacing:.04em;
-  }
-  .loopback.green{border-top-color:var(--ok);color:var(--ok)}
-  .downlink{font-family:var(--mono);font-size:.66rem;color:var(--ink-2);text-align:right;margin-top:14px;letter-spacing:.04em}
-  .downlink b{color:var(--ink);font-weight:600}
-
-  /* ---------- tables ---------- */
-  table{
-    width:100%;border-collapse:collapse;margin:6px 0 24px;
-    font-size:.9rem;border-top:2px solid var(--rule-strong);border-bottom:2px solid var(--rule-strong);
-  }
-  caption{font-family:var(--mono);font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding-bottom:8px}
-  th{
-    text-align:left;padding:9px 14px 8px 0;
-    font-family:var(--mono);font-size:.6rem;font-weight:600;
-    letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);
-    border-bottom:1px solid var(--rule-strong);
-  }
-  td{padding:10px 14px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2);vertical-align:top}
-  tr:last-child td{border-bottom:none}
-  td:first-child{color:var(--ink);font-weight:600}
-  td.num{font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:.8rem;white-space:nowrap}
-
-  /* ---------- definition-list pairs ---------- */
-  dl.pairs{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--rule-strong);margin:8px 0 26px}
-  dl.pairs>div{padding:16px 20px}
-  dl.pairs>div:first-child{border-right:1px solid var(--rule)}
-  dl.pairs dt{font-weight:700;font-size:.95rem}
-  dl.pairs dt .tag{font-family:var(--mono);font-size:.6rem;font-weight:400;color:var(--accent);letter-spacing:.14em;margin-right:8px}
-  dl.pairs dd{font-size:.85rem;color:var(--ink-2);margin-top:5px;line-height:1.55}
-
-  /* ---------- say / don't / warn ---------- */
-  .verdicts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border:1px solid var(--rule-strong);margin:6px 0 10px}
-  .verdict{padding:15px 18px;border-right:1px solid var(--rule)}
-  .verdict:last-child{border-right:none}
-  .verdict .tag{font-family:var(--mono);font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;display:block;margin-bottom:6px}
-  .verdict.ok .tag{color:var(--ok)}
-  .verdict.no .tag{color:var(--bad)}
-  .verdict p{font-size:.84rem;color:var(--ink-2);margin:0;line-height:1.55}
-  .verdict p strong{color:var(--ink)}
-  .stack .verdict{border-right:none;border-bottom:1px solid var(--rule)}
-  .stack .verdict:last-child{border-bottom:none}
-  .stack{grid-template-columns:1fr}
-  .warn{
-    border:1px solid var(--ochre);border-left-width:3px;padding:11px 16px;
-    font-size:.86rem;color:var(--ink-2);margin:8px 0;background:#fffdf4;
-  }
-  .warn b{color:var(--ochre);font-family:var(--mono);font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;margin-right:10px}
-
-  /* ---------- code ---------- */
-  pre{
-    background:var(--ink);color:#e9e5d8;border:none;
-    padding:18px 20px;font-family:var(--mono);font-size:.78rem;line-height:1.7;
-    overflow-x:auto;margin:8px 0 22px;
-  }
-  pre .cm{color:#8a857a}
-  pre .cmd{color:#f0a766}
-  code{font-family:var(--mono);font-size:.84em;background:var(--bone);border:1px solid var(--rule);padding:0 5px;color:var(--ink)}
-  pre code{background:none;border:none;padding:0;color:inherit}
-
-  /* ---------- demo agenda ---------- */
-  .stage{display:grid;grid-template-columns:170px 1fr;border:1px solid var(--rule-strong);margin:0 0 -1px;background:var(--paper)}
-  .stage .when{border-right:1px solid var(--rule);padding:20px 18px;background:var(--bone)}
-  .stage .when .t{font-family:var(--mono);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
-  .stage .when .dur{font-family:var(--serif);font-size:1.35rem;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-  .stage .what{padding:20px 24px}
-  .stage .what h4{font-size:1.08rem;font-weight:700;letter-spacing:-.01em;margin-bottom:10px}
-  .stage ol{margin:0 0 10px 20px}
-  .stage li{font-size:.89rem;color:var(--ink-2);margin-bottom:5px}
-  .talk{
-    font-family:var(--serif);font-style:italic;font-size:.93rem;line-height:1.55;
-    border-top:1px solid var(--rule);padding-top:11px;margin-top:12px;color:var(--ink);
-  }
-  .talk::before{
-    content:"Talk track";font-family:var(--mono);font-style:normal;
-    font-size:.56rem;letter-spacing:.2em;text-transform:uppercase;
-    color:var(--accent);display:block;margin-bottom:5px;
-  }
-  .kfnote{font-size:.72rem;color:var(--ink-3);margin-top:8px}
-
-  /* ---------- screen panels: numbered index list ---------- */
-  .panellist{border:1px solid var(--rule-strong);margin:6px 0 10px}
-  .panel{
-    display:grid;grid-template-columns:64px 220px 1fr;align-items:baseline;gap:18px;
-    padding:13px 20px;border-bottom:1px solid var(--rule);
-  }
-  .panel:last-child{border-bottom:none}
-  .panel:nth-child(odd){background:var(--bone)}
-  .panel .pn{font-family:var(--mono);font-size:.72rem;color:var(--accent)}
-  .panel h5{font-size:.92rem;font-weight:700}
-  .panel p{font-size:.86rem;color:var(--ink-2);font-style:italic;margin:0}
-
-  /* ---------- lists ---------- */
-  ul.clean,ol.clean{margin:6px 0 18px 22px}
-  ul.clean li,ol.clean li{margin-bottom:7px;color:var(--ink-2);font-size:.93rem}
-  ul.clean li strong,ol.clean li strong{color:var(--ink)}
-  .checklist{list-style:none;margin:10px 0}
-  .checklist li{
-    padding:10px 14px;border:1px solid var(--rule-strong);border-bottom:none;
-    font-size:.92rem;color:var(--ink-2);
-  }
-  .checklist li:last-child{border-bottom:1px solid var(--rule-strong)}
-  .checklist li::before{content:"☐";color:var(--ok);margin-right:10px}
-  .badge{
-    display:inline-block;font-family:var(--mono);font-size:.58rem;font-weight:400;
-    padding:2px 8px;border:1px solid var(--ochre);color:var(--ochre);
-    vertical-align:middle;margin-left:10px;letter-spacing:.12em;text-transform:uppercase;
-  }
-  .b-live{color:var(--ok);border-color:var(--ok)}
-
-  footer{
-    margin-top:90px;padding-top:18px;border-top:2px solid var(--rule-strong);
-    font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;color:var(--ink-3);
-    display:flex;justify-content:space-between;text-transform:uppercase;
-  }
-
-  /* ---------- responsive ---------- */
-  @media (max-width:920px){
-    nav{display:none}
-    main{margin-left:0;padding:0 24px 90px}
-    .stats{grid-template-columns:1fr 1fr}
-    .stat:nth-child(2){border-right:none}
-    .stat:nth-child(1),.stat:nth-child(2){border-bottom:1px solid var(--rule)}
-    .flowrow,.flowrow2{grid-template-columns:1fr}
-    .conn{padding:4px 0;transform:rotate(90deg)}
-    .conn small{display:none}
-    .stage{grid-template-columns:1fr}
-    .stage .when{border-right:none;border-bottom:1px solid var(--rule);display:flex;gap:16px;align-items:baseline}
-    .panel{grid-template-columns:48px 1fr}
-    .panel p{grid-column:2}
-    .verdicts{grid-template-columns:1fr}
-    .verdict{border-right:none;border-bottom:1px solid var(--rule)}
-    dl.pairs{grid-template-columns:1fr}
-    dl.pairs>div:first-child{border-right:none;border-bottom:1px solid var(--rule)}
-  }
-
-  /* ---------- print: doubles as the handout ---------- */
-  @media print{
-    nav{display:none}
-    main{margin:0;max-width:none;padding:0}
-    body{font-size:11.5px}
-    section{page-break-inside:avoid;padding-top:34px}
-    .stage,.schematic,.stats,table,pre,dl.pairs,.panellist{page-break-inside:avoid}
-    pre{background:#f4f2ec;color:var(--ink);border:1px solid var(--rule-strong)}
-    pre .cm{color:#777263} pre .cmd{color:var(--accent)}
-    a{color:var(--ink)}
-    .talk{page-break-inside:avoid}
-  }
+:root{--ink:#152039;--muted:#505d72;--blue:#153be0;--blue-soft:#edf1ff;--paper:#fff;--line:#d8deea;--green:#0a6750;--amber:#8c4500;--nav:228px;font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:var(--paper);font-size:16px;line-height:1.6;font-synthesis:none}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:35px}body{margin:0}button,input{font:inherit}button,a,input,summary{-webkit-tap-highlight-color:transparent}a{color:var(--blue);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}button,summary{cursor:pointer}button{color:inherit}button:disabled{cursor:default;opacity:.45}:focus-visible{outline:3px solid var(--blue);outline-offset:5px}::selection{background:#ffe577;color:var(--ink)}h1,h2,h3,p,figure{margin:0}h1,h2,h3{line-height:1.15;letter-spacing:-.035em}h1{font-size:clamp(2.5rem,4.5vw,4.5rem);font-weight:720;max-width:850px}h2{font-size:clamp(2rem,3.6vw,3rem);font-weight:680}h3{font-size:1.4rem;font-weight:650}p+p{margin-top:1rem}small,.small{font-size:.875rem}strong{font-weight:650}code,kbd,pre,.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}code{font-size:.9em;overflow-wrap:anywhere}p code,li code,td code{background:#eef1f6;padding:2px 4px}pre{margin:0;font-size:.875rem;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}ul,ol{padding-left:1.3rem}li+li{margin-top:.45rem}.skip{position:fixed;left:1rem;top:-100px;background:var(--paper);padding:.75rem;z-index:10}.skip:focus{top:1rem}
+.sidebar{position:fixed;inset:0 auto 0 0;width:var(--nav);border-right:1px solid var(--line);padding:32px 24px;display:flex;flex-direction:column;background:#f7f9fc;z-index:3;overflow:auto}.brand{display:flex;align-items:center;gap:10px;font-size:1.15rem;font-weight:750;color:var(--ink);text-decoration:none;letter-spacing:-.025em}.brand-symbol{width:26px;height:26px;display:grid;place-items:center;background:var(--blue);color:white;font-family:ui-monospace,monospace;font-size:16px}.edition{font-size:.875rem;color:var(--muted);margin:10px 0 37px}nav{display:grid;gap:5px}nav a{color:var(--muted);font-size:.9375rem;text-decoration:none;padding:9px 0 9px 11px;border-left:2px solid transparent}nav a span{font-size:.875rem;display:inline-block;width:27px;color:var(--muted)}nav a[aria-current]{border-color:var(--blue);color:var(--blue);background:#eaf0ff}nav a:hover{color:var(--blue)}.side-bottom{margin-top:auto;padding-top:40px;color:var(--muted);font-size:.875rem}.side-bottom p{margin-top:12px}.tools{display:grid;gap:9px}.tools button{background:transparent;border:1px solid #bec8da;padding:9px 10px;text-align:left;font-size:.875rem}.tools button:hover{background:white}.side-rule{display:block;border-top:1px solid var(--line);margin-top:24px;padding-top:16px}.js-only{display:none}.ready .js-only{display:block}
+main{margin-left:var(--nav);max-width:1430px;padding:0 6vw 60px}.topline{padding:28px 0 22px;display:flex;justify-content:space-between;gap:1rem;border-bottom:1px solid var(--line);font-size:.875rem;color:var(--muted)}.topline a{text-decoration:none}.eyebrow{font-size:.875rem;text-transform:uppercase;letter-spacing:.09em;font-weight:650;color:var(--blue)}section{padding:66px 0;border-bottom:1px solid var(--line);scroll-margin-top:25px}.intro{padding-top:46px}.intro .eyebrow{margin-bottom:16px}.intro-copy{font-size:1.125rem;color:var(--muted);max-width:700px;margin-top:23px}.start-links{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-top:25px}.button{border:1px solid var(--ink);background:white;padding:10px 16px;font-size:.9375rem;text-decoration:none;font-weight:600;display:inline-block}.button.primary{background:var(--blue);color:white;border-color:var(--blue)}.button:hover{background:#edf1ff}.button.primary:hover{background:#0b2bb2}.intro-line{display:flex;gap:28px;margin-top:32px;padding-top:18px;border-top:1px solid var(--line);font-size:.875rem;color:var(--muted)}.intro-line strong{display:block;color:var(--ink);font-size:1.125rem}.section-head{display:grid;grid-template-columns:50px 1fr;gap:12px;margin-bottom:30px}.section-no{font-size:1rem;font-family:ui-monospace,monospace;color:var(--blue);padding-top:8px}.section-head p{color:var(--muted);max-width:680px;margin-top:12px}.split{display:grid;grid-template-columns:1fr 1fr;gap:30px}.split.wide-left{grid-template-columns:1.3fr 1fr}.stack>*+*{margin-top:20px}.note{padding:18px 21px;background:var(--blue-soft);border-left:3px solid var(--blue);font-size:.9375rem}.note.amber{background:#fff7e4;border-color:#c17811}.note p{margin-top:5px}.note strong{display:block}.tag{font-size:.8125rem;letter-spacing:.07em;text-transform:uppercase;font-weight:650;color:var(--muted)}.caption{font-size:.875rem;color:var(--muted);margin-top:12px;line-height:1.5}
+.workflow{margin-top:30px;background:#f7f9fc;border:1px solid var(--line);padding:26px}.workflow-top{display:flex;justify-content:space-between;gap:15px;margin-bottom:23px}.flow{display:grid;grid-template-columns:1fr 28px 1fr 28px 1fr 28px 1fr;align-items:center;gap:0}.node{border:1px solid #b6c2d6;padding:16px 11px;min-width:0;background:white;line-height:1.4}.node b{display:block;font-size:1rem}.node small{display:block;margin-top:5px;color:var(--muted);font-size:.875rem}.node:last-child{border:1px dashed var(--blue);background:#f0f3ff}.arrow{color:var(--blue);text-align:center;font-size:1.25rem}.return-line{text-align:center;margin:16px 0 0;font-family:ui-monospace,monospace;font-size:.875rem;color:var(--blue)}.flow-foot{margin-top:18px;padding-top:15px;border-top:1px solid var(--line);color:var(--muted);font-size:.875rem}
+.walkthrough{border:1px solid var(--line);margin-top:28px}.ticket-band{padding:21px 24px;border-bottom:1px solid var(--line);display:flex;gap:22px}.ticket-id{font-family:ui-monospace,monospace;color:var(--blue);font-weight:600}.ticket-band p{font-size:1rem}.walk-body{padding:24px;display:grid;grid-template-columns:160px 1fr;gap:28px}.walk-steps{display:grid;align-content:start;gap:7px}.walk-steps button{background:transparent;text-align:left;border:0;border-left:2px solid var(--line);padding:8px 12px;font-size:.9375rem}.walk-steps button[aria-pressed=true]{border-color:var(--blue);background:var(--blue-soft);color:var(--blue);font-weight:650}.walk-detail{min-width:0}.walk-detail .tag{color:var(--blue)}.walk-detail h3{margin:6px 0 13px}.draft{background:#f5f7fb;padding:17px 19px;margin:16px 0;font-size:1rem;line-height:1.6;border-left:2px solid #aab7ce}.walk-actions{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:21px}.walk-actions button{border:1px solid #b6c2d6;background:white;padding:7px 12px;font-size:.875rem}.two-paths{margin-top:26px;display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line)}.two-paths>div{padding:22px}.two-paths>div+div{border-left:1px solid var(--line)}.two-paths h3{font-size:1.125rem;margin:8px 0 10px}.two-paths p{font-size:.9375rem}.two-paths .tag{color:var(--blue)}
+.setup-step{display:grid;grid-template-columns:34px 1fr;gap:12px;padding:24px 0;border-top:1px solid var(--line)}.setup-step:first-child{border:0;padding-top:0}.step-circle{width:27px;height:27px;display:grid;place-items:center;border:1px solid var(--blue);font-size:.875rem;color:var(--blue);border-radius:50%}.setup-step h3{font-size:1.2rem;margin:2px 0 12px}.setup-step p{font-size:.9375rem}.codebox{background:#152039;color:#f1f5ff;margin:15px 0;position:relative;border:1px solid #152039}.code-label{display:flex;justify-content:space-between;align-items:center;padding:9px 15px;border-bottom:1px solid #38445e;font-size:.8125rem;color:#c1cee7;gap:10px}.codebox pre{padding:16px}.copy{border:1px solid #66748f;background:transparent;color:white;font-size:.8125rem;padding:3px 9px;min-width:64px}.copy:hover{background:#354766}.setup-aside{border-left:1px solid var(--line);padding-left:25px}.setup-aside h3{margin-bottom:16px}.setup-aside dl{margin:0}.setup-aside dt{font-weight:650;font-size:.9375rem;margin-top:17px}.setup-aside dd{margin:5px 0 0;font-size:.9375rem;color:var(--muted)}.setup-aside .note{margin-top:26px}
+.exercise{padding:27px 0;border-top:1px solid var(--line)}.exercise-head{display:flex;justify-content:space-between;align-items:baseline;gap:20px;margin-bottom:14px}.exercise-head h3{font-size:1.45rem}.exercise-head small{color:var(--muted);white-space:nowrap}.exercise>p{max-width:770px}.exercise ol{margin:14px 0 18px}.exercise details{margin-top:16px}.checkpoint{color:var(--muted);font-size:.875rem;margin-top:15px}details{border:1px solid var(--line)}summary{padding:14px 17px;font-size:.9375rem;font-weight:600}details[open] summary{border-bottom:1px solid var(--line);background:#f7f9fc}details>div{padding:17px}details>div>*+*{margin-top:12px}.table-wrap{overflow:auto;margin:20px 0}table{border-collapse:collapse;width:100%;font-size:.9375rem;text-align:left}caption{text-align:left;font-size:.875rem;color:var(--muted);padding-bottom:10px}th{font-weight:650;background:#f6f8fc}th,td{padding:13px 15px;border-bottom:1px solid var(--line);vertical-align:top}th:first-child,td:first-child{padding-left:10px}th[scope=row]{background:transparent}.reply-pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:18px 0}.reply-sample{background:#f5f7fb;border-top:2px solid #8c9ab4;padding:18px}.reply-sample .tag{margin-bottom:12px}.reply-sample p{font-size:.9375rem}.reply-sample code{display:block;margin-top:12px}.try{margin:15px 0 0;border-left:2px solid var(--blue);padding-left:15px;font-size:.9375rem}
+.gate-layout{display:grid;grid-template-columns:1fr 1.1fr;gap:30px}.gate-controls{padding:23px;border:1px solid var(--line)}.range-field+.range-field{margin-top:26px}.range-label{display:flex;justify-content:space-between;gap:15px;font-size:1rem;margin-bottom:13px}.range-label output{font-family:ui-monospace,monospace;font-weight:650}.range-field input{width:100%;accent-color:var(--blue);height:26px}.range-ends{display:flex;justify-content:space-between;font-size:.875rem;color:var(--muted)}.presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}.presets button{background:white;border:1px solid #a6b4cc;padding:8px 11px;font-size:.875rem}.presets button:hover,.presets button[aria-pressed=true]{background:var(--blue-soft);color:var(--blue);border-color:var(--blue)}.gate-result{margin-top:22px;padding:18px;background:#eaf6f0;border-left:3px solid var(--green)}.gate-result[data-verdict=revert]{background:#fff4e4;border-color:var(--amber)}.gate-result h3{font-size:1.5rem;color:var(--green)}.gate-result[data-verdict=revert] h3{color:var(--amber)}.gate-result p{font-size:.9375rem;margin-top:8px}.legend{display:flex;gap:18px;font-size:.875rem;color:var(--muted);margin-bottom:16px}.swatch{display:inline-block;width:12px;height:12px;background:#a6b4cc;margin-right:7px}.swatch.blue{background:var(--blue)}.chart{border:1px solid var(--line);padding:22px 21px;background:#f9fbfe}.chart-scale{display:flex;justify-content:space-between;margin:0 0 15px;font-size:.8125rem;color:var(--muted)}.chart-group+.chart-group{margin-top:24px}.chart-group h3{font-size:1rem;margin-bottom:10px}.bar-track{height:29px;background:repeating-linear-gradient(90deg,transparent,transparent calc(25% - 1px),#e2e7f0 calc(25% - 1px),#e2e7f0 25%);border-right:1px solid #e2e7f0;margin:7px 0}.bar{height:100%;background:#a6b4cc;min-width:0}.bar.candidate{background:var(--blue)}.bar-values{font-size:.875rem;font-family:ui-monospace,monospace;margin-top:10px}.gate-formula{margin-top:23px;font-size:.875rem;border-top:1px solid var(--line);padding-top:18px;color:var(--muted)}.gate-formula code{display:block;color:var(--ink);line-height:1.8}.dataset-chart{display:grid;grid-template-columns:28fr 19fr;margin:20px 0 10px;min-height:62px;color:white;font-weight:650}.dataset-chart div{padding:17px 14px;background:var(--blue);font-size:.9375rem}.dataset-chart div+div{background:#48627e}.limits{margin-top:30px}.limits li{font-size:.9375rem}.agenda{display:grid;grid-template-columns:5fr 7fr 10fr 15fr 13fr 10fr;gap:3px;margin:20px 0 14px}.agenda span{height:12px;background:var(--blue)}.agenda span:nth-child(2n){background:#7c98eb}.ref-links{display:grid;grid-template-columns:1fr 1fr;gap:0 30px;margin-top:24px}.ref-links a{padding:13px 0;border-bottom:1px solid var(--line);font-size:.9375rem}.glossary{display:grid;grid-template-columns:140px 1fr;gap:12px 20px;font-size:.9375rem;margin-top:24px}.glossary dt{font-weight:650}.glossary dd{margin:0;color:var(--muted)}footer{padding-top:30px;display:flex;justify-content:space-between;gap:20px;font-size:.875rem;color:var(--muted)}.present-exit{display:none;position:fixed;top:15px;right:15px;z-index:5;background:white;border:1px solid var(--ink);padding:9px 15px;font-size:.875rem}.presentation .sidebar{display:none}.presentation main{margin:0 auto;max-width:1350px;padding:0 6vw 60px}.presentation{font-size:18px}.presentation .present-exit{display:block}.presentation .topline{padding-right:140px}.print-only{display:none}
+@media(min-width:1500px){main{padding-left:90px;padding-right:90px}}
+@media(max-width:1100px){:root{--nav:196px}.sidebar{padding:28px 16px}main{padding-left:4vw;padding-right:4vw}.flow{grid-template-columns:1fr 20px 1fr 20px 1fr 20px 1fr}.node{padding:13px 8px}.split.wide-left{grid-template-columns:1.15fr 1fr}.gate-layout{grid-template-columns:1fr}.chart{max-width:none}.walk-body{grid-template-columns:145px 1fr;gap:18px}}
+@media(max-width:800px){:root{--nav:0px}.sidebar{position:relative;width:auto;inset:auto;padding:20px;border-right:0;border-bottom:1px solid var(--line);overflow:visible}.edition{margin:5px 0 15px}.sidebar nav{display:flex;flex-wrap:wrap;gap:0 12px}.sidebar nav a{padding:6px 0;border-left:0;border-bottom:2px solid transparent;font-size:.875rem}.sidebar nav a[aria-current]{border-bottom-color:var(--blue);background:none}.sidebar nav a span{width:auto;margin-right:5px}.side-bottom{margin:12px 0 0;padding:0}.side-bottom .tools{display:flex;flex-wrap:wrap}.side-rule,.side-bottom p{display:none}main{margin-left:0;padding:0 24px 40px}.topline{padding-top:22px}section{padding:44px 0}.intro{padding-top:32px}h1{font-size:3rem}.section-head{grid-template-columns:32px 1fr;gap:7px}.split,.split.wide-left{grid-template-columns:1fr}.setup-aside{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:25px}.flow{grid-template-columns:1fr 22px 1fr}.flow>.arrow:nth-child(4){display:none}.flow>.node:nth-child(5),.flow>.arrow:nth-child(6),.flow>.node:nth-child(7){margin-top:16px}.workflow{padding:19px}.workflow-top{flex-direction:column;gap:5px}.walk-body{grid-template-columns:1fr}.walk-steps{grid-template-columns:repeat(2,1fr)}.two-paths{grid-template-columns:1fr}.two-paths>div+div{border-left:0;border-top:1px solid var(--line)}.reply-pair{grid-template-columns:1fr}.intro-line{gap:20px;flex-wrap:wrap}.exercise-head{display:block}.exercise-head small{display:block;margin-top:10px}.ref-links{grid-template-columns:1fr}.glossary{grid-template-columns:100px 1fr}.ticket-band{padding:18px;gap:15px}.walk-body{padding:18px}.topline{flex-wrap:wrap}.chart{padding:17px}.presentation main{padding:0 24px 40px}.presentation .topline{padding-right:0;padding-top:62px}}
+@media(max-width:420px){main{padding:0 18px 35px}h1{font-size:2.55rem}.section-head{grid-template-columns:1fr}.section-no{padding:0}.intro-line{gap:16px}.intro-line>span{flex-basis:42%}.walk-steps button{padding:8px;font-size:.875rem}.gate-controls{padding:17px}.range-label{flex-wrap:wrap}.walk-actions{flex-wrap:wrap}.glossary{grid-template-columns:1fr;gap:5px}.glossary dd{margin-bottom:13px}th,td{padding:10px}.sidebar{padding:18px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+@media print{@page{size:A4;margin:16mm}:root{font-size:10pt;color:#000}body{background:white}.sidebar,.topline,.skip,.tools,.present-exit,.js-only,.ready .js-only,.start-links,.walk-actions,.walk-steps,.presets{display:none!important}main,.presentation main{margin:0;padding:0;max-width:none}section{padding:22px 0;scroll-margin-top:0}h1{font-size:29pt}h2{font-size:23pt}h3{font-size:14pt}p,li{orphans:3;widows:3}.intro{padding-top:0}.intro-copy{font-size:12pt}.section-head{margin-bottom:18px}h2,h3,summary,.section-head{break-after:avoid}.note,.workflow,.reply-sample,.gate-controls,.chart,pre,tr{break-inside:avoid}.split,.split.wide-left,.gate-layout{display:block}.setup-aside{border:0;padding:18px 0}.walk-body{display:block}.walk-detail{min-height:0}.walkthrough,.exercise{break-inside:auto}.print-only{display:block;margin-top:15px}.no-print{display:none!important}a{color:inherit;text-decoration:underline}.codebox{background:#f5f5f5;color:black;border-color:#aaa}.code-label{color:#333;border-color:#aaa}.codebox pre{font-size:9pt}.copy{display:none}details{border-color:#bbb}details>div{display:block!important}.draft,.reply-sample{background:#f4f4f4}.gate-result{border:1px solid #777}.bar{print-color-adjust:exact;-webkit-print-color-adjust:exact;background:#929ba9}.bar.candidate,.dataset-chart div,.agenda span{print-color-adjust:exact;-webkit-print-color-adjust:exact}.section-no{color:#333}.two-paths{display:block}.two-paths>div+div{border-left:0;border-top:1px solid #bbb}.ref-links{display:grid}.exercise-head{display:block}.intro-line{margin-top:20px}footer{font-size:9pt}}
 </style>
 </head>
 <body>
-
-<nav id="nav" aria-label="Contents">
-  <div class="docno">Field Guide · Rev 1.0</div>
-  <div class="brand">ParcelCo <em>Flywheel</em></div>
-  <div class="sub">Workshop 1 — the self-improving support agent. Companion deck for the live demo.</div>
-  <a href="#overview" class="active"><span class="idx">00</span>Overview</a>
-  <a href="#loop"><span class="idx">01</span>The One Loop</a>
-  <a href="#demo"><span class="idx">02</span>Live Demo Path</a>
-  <a href="#screen"><span class="idx">03</span>Screen Layout</a>
-  <a href="#speaker"><span class="idx">04</span>Speaker Notes</a>
-  <a href="#workshop"><span class="idx">05</span>Workshop Build</a>
-  <a href="#langfuse"><span class="idx">06</span>LangFuse &amp; Ops</a>
-  <a href="#cheatsheet"><span class="idx">07</span>Cheat Sheet</a>
-  <button class="toggle" id="presentToggle">Presenter mode — P</button>
-  <div class="foot">
-    <kbd>←</kbd> <kbd>→</kbd> sections · <kbd>P</kbd> present<br>
-    Print → PDF = workshop handout<br><br>
-    Sources · CONCEPT, WORKSHOP,<br>PRESALES_DEMO, SPEAKER_NOTES,<br>LANGFUSE_DOCKER
-  </div>
+<a class="skip" href="#main">Skip to workshop guide</a>
+<aside class="sidebar">
+<a class="brand" href="#start"><span class="brand-symbol" aria-hidden="true">P</span> ParcelCo</a>
+<p class="edition">AI agent workshop / 01</p>
+<nav aria-label="Workshop sections">
+<a href="#start" aria-current="location"><span>00</span> Start here</a>
+<a href="#loop"><span>01</span> Follow a ticket</a>
+<a href="#setup"><span>02</span> Get set up</a>
+<a href="#exercises"><span>03</span> Try it yourself</a>
+<a href="#gate"><span>04</span> Keep or revert?</a>
+<a href="#reference"><span>05</span> At a glance</a>
 </nav>
-
-<main>
-
-<!-- ============ 00 · OVERVIEW ============ -->
-<section id="overview">
-  <div class="masthead"><span>ParcelCo Flywheel — Workshop 1</span><span>Doc 00 · Overview</span></div>
-  <h1>The self-improving<br>support agent, <em>one loop.</em></h1>
-  <p class="lede">A frozen local LLM (<strong>Qwen</strong>) answers ParcelCo tickets inside <strong>one realtime loop</strong>. A Python checklist grades replies. If a reply fails, the <strong>same loop</strong> retries (heal). Across many tickets, <strong>reflect</strong> writes lessons and a <strong>gate</strong> keeps them only when scores improve. ParcelCo is fictional — the product is the visible loop, plus proof.</p>
-
-  <div class="loopline">
-    <span class="st">retrieve</span><span class="ar">→</span>
-    <span class="st">generate</span><span class="ar">→</span>
-    <span class="st">evaluate</span><span class="ar">→</span>
-    <span class="dec">heal?</span><span class="ar">→</span>
-    <span class="st">reflect (suite)</span><span class="ar">→</span>
-    <span class="dec">keep / revert</span>
-  </div>
-
-  <div class="stats">
-    <div class="stat"><div class="big">one<span>.</span></div><div class="lbl">loop — not two systems</div><div class="sub2">heal and improve are steps of a single loop</div></div>
-    <div class="stat"><div class="big">1000</div><div class="lbl">labeled tickets</div><div class="sub2">700 learn-set (A) + 300 holdout (B)</div></div>
-    <div class="stat"><div class="big">35</div><div class="lbl">core demo suite</div><div class="sub2"><code>--suite demo</code> for live rooms</div></div>
-    <div class="stat"><div class="big">0</div><div class="lbl">weight updates</div><div class="sub2">Qwen stays frozen; memory is gated</div></div>
-  </div>
-
-  <blockquote class="quote">“One loop. Act, check, heal, reflect, keep only when the numbers say so. Weights stay frozen.”
-    <span class="attr">— The punchline</span>
-  </blockquote>
-
-  <h3>How the room sees it</h3>
-  <ol class="clean">
-    <li><strong>Pick a ticket</strong> from the big list</li>
-    <li><strong>Run loop on ticket</strong> — watch nodes light in realtime + attempt timeline</li>
-    <li><strong>Score suite</strong> — where it was</li>
-    <li><strong>Learn</strong> — reflect + gate — where it is now</li>
-    <li>Optional <strong>LangFuse</strong> trace for the generate step</li>
-  </ol>
+<div class="side-bottom">
+<div class="tools js-only"><button type="button" id="present" aria-pressed="false">Presentation view</button><button type="button" id="print">Print / save PDF</button></div>
+<span class="side-rule">60-minute group session</span>
+<p>Follow along on your own,<br>or work with a partner.</p>
+</div>
+</aside>
+<button class="present-exit" type="button" id="exit-present">Exit presentation</button>
+<main id="main">
+<div class="topline"><span>Workshop field guide</span><a href="http://127.0.0.1:5050" target="_blank" rel="noopener">Open local dashboard ↗</a></div>
+<section id="start" class="intro">
+<p class="eyebrow">Read the policy. Check the reply.</p>
+<h1>How does an agent<br>learn from a mistake?</h1>
+<p class="intro-copy">Let's answer a customer ticket, inspect what went wrong, and decide what to remember. The model stays the same. Its instructions and saved lessons can change.</p>
+<div class="start-links"><a class="button primary" href="#loop">Follow one ticket <span aria-hidden="true">→</span></a><a href="#exercises">Jump to the exercises</a></div>
+<div class="workflow" aria-label="Workflow overview">
+<div class="workflow-top"><span class="tag">The reply workflow</span><span class="small">ParcelCo · a fictional delivery company</span></div>
+<div class="flow">
+<div class="node"><b>Retrieve</b><small>Find policy text</small></div><span class="arrow" aria-hidden="true">→</span>
+<div class="node"><b>Generate</b><small>Write a reply</small></div><span class="arrow" aria-hidden="true">→</span>
+<div class="node"><b>Evaluate</b><small>Check the answer</small></div><span class="arrow" aria-hidden="true">→</span>
+<div class="node"><b>Heal, if needed</b><small>Prepare a retry</small></div>
+</div>
+<p class="return-line">↶ A failed check can send the ticket back to Retrieve.</p>
+<p class="flow-foot">Stop when the reply passes or the retry limit is reached. Saving a lesson comes afterward.</p>
+</div>
+<div class="intro-line"><span><strong>4 exercises</strong>Predict, check, retry, compare</span><span><strong>47 demo tickets</strong>28 learn + 19 holdout</span><span><strong>No model needed</strong>For this reference page</span></div>
 </section>
-
-<!-- ============ 01 · THE ONE LOOP ============ -->
 <section id="loop">
-  <h2><span class="num">01</span>The One Loop</h2>
-  <p class="lede">Heal is a retry step in the <strong>same</strong> loop — not a second system. The checklist, not the model, is the gate.</p>
-
-  <div class="schematic">
-    <div class="cap">Fig. 1 — One ticket through the loop; suite steps below the fold</div>
-    <div class="flowrow">
-      <div class="node"><div class="no">STEP 1</div><div class="t">Retrieve</div><div class="d">Pull policy / FAQ for this ticket</div></div>
-      <div class="conn">→</div>
-      <div class="node"><div class="no">STEP 2</div><div class="t">Generate</div><div class="d">Qwen drafts reply + <code>ACTION:</code></div></div>
-      <div class="conn">→</div>
-      <div class="node"><div class="no">STEP 3</div><div class="t">Evaluate</div><div class="d">Checklist vs expected JSON</div></div>
-      <div class="conn"><span>→</span><small>fail · retries left</small></div>
-      <div class="node decision"><div class="no">STEP 4</div><div class="t">Heal</div><div class="d">Feed errors back; retry (bounded)</div></div>
-    </div>
-    <div class="loopback">↺&nbsp; fail &amp; retries left — Heal feeds back into Retrieve. Same loop, not a second system.</div>
-    <div class="downlink">pass or max heals <b>↓</b> suite-level steps</div>
-    <div class="flowrow2">
-      <div class="node"><div class="no">STEP 5</div><div class="t">Reflect</div><div class="d">On the suite: lessons from learn-set failures</div></div>
-      <div class="conn">→</div>
-      <div class="node decision"><div class="no">STEP 6</div><div class="t">Gate — keep?</div><div class="d">Keep only if learn-set rises &amp; holdout holds</div></div>
-      <div class="conn">→</div>
-      <div class="node terminal"><div class="no">YES</div><div class="t">Memory</div><div class="d">learnings / prompt — feeds future Retrieve</div></div>
-    </div>
-    <div class="loopback green">↺&nbsp; kept memory feeds future Retrieve &nbsp;·&nbsp; gate says no → revert memory, nothing changes</div>
-  </div>
-
-  <h3>Step by step</h3>
-  <table>
-    <caption>Table 1 — the six steps</caption>
-    <tr><th style="width:130px">Step</th><th>What happens</th></tr>
-    <tr><td>Retrieve</td><td>Pull policy/FAQ for this ticket</td></tr>
-    <tr><td>Generate</td><td>Qwen drafts reply + <code>ACTION:</code></td></tr>
-    <tr><td>Evaluate</td><td>Checklist vs expected JSON</td></tr>
-    <tr><td>Heal</td><td>Feed errors back; retry (bounded)</td></tr>
-    <tr><td>Reflect</td><td>On the suite: lessons from learn-set failures</td></tr>
-    <tr><td>Gate</td><td>Keep only if learn-set rises and holdout holds</td></tr>
-  </table>
-
-  <h3>The split that proves it</h3>
-  <dl class="pairs">
-    <div>
-      <dt><span class="tag">PART A</span>Learn set — 700 tickets</dt>
-      <dd>Tickets we learn from. Reflect mines its failures; the gate measures lift here.</dd>
-    </div>
-    <div>
-      <dt><span class="tag">PART B</span>Holdout — 300 tickets</dt>
-      <dd>Score only. Proves we didn’t memorize. Live demo suite: core <strong>35</strong> (20A / 15B).</dd>
-    </div>
-  </dl>
-
-  <h3>What we are not doing</h3>
-  <div class="verdicts">
-    <div class="verdict no"><span class="tag">✗ Not fine-tuning</span><p>Qwen weights stay frozen — training an SLM is Workshop 2.</p></div>
-    <div class="verdict no"><span class="tag">✗ Not two systems</span><p>Heal vs improve are not separate loops — one loop, different steps.</p></div>
-    <div class="verdict no"><span class="tag">✗ Not LLM self-grading</span><p>A hard Python checklist is the gate — the model never grades itself.</p></div>
-  </div>
+<div class="section-head"><span class="section-no">01</span><div><h2>Follow one ticket</h2><p>A customer asks for a refund after 40 days. The policy allows 30. What should the reply say?</p></div></div>
+<div class="walkthrough">
+<div class="ticket-band"><span class="ticket-id">A02</span><div><p>“Package came 40 days ago and I'm unhappy. Refund me now.”</p><span class="caption">Real workshop ticket · the replies below are constructed teaching examples.</span></div></div>
+<div class="walk-body">
+<div class="walk-steps js-only" role="group" aria-label="Example workflow steps">
+<button type="button" data-step="0" aria-pressed="true">1 / Retrieve</button><button type="button" data-step="1" aria-pressed="false">2 / Generate</button><button type="button" data-step="2" aria-pressed="false">3 / Evaluate</button><button type="button" data-step="3" aria-pressed="false">4 / Heal + retry</button>
+</div>
+<div class="walk-detail" aria-live="polite" aria-atomic="true">
+<p class="tag" id="walk-label">Step 1 of 4 · Retrieve</p><h3 id="walk-title">Bring the policy into the request</h3>
+<p id="walk-text">The retriever finds policy and FAQ text. The refund policy says requests outside the 30-day window should be denied under standard policy.</p>
+<div class="draft" id="walk-draft">Policy: refunds are allowed only within 30 days of delivery.</div>
+<p class="small" id="walk-note">RAG means retrieval-augmented generation: find relevant text, then include it when asking the model to write.</p>
+<div class="walk-actions js-only"><span class="small" id="walk-count">1 / 4</span><div><button type="button" id="walk-prev" disabled>← Previous</button> <button type="button" id="walk-next">Next step →</button></div></div>
+</div>
+</div>
+</div>
+<noscript><p class="note">The example: draft “Outside our refund window. ACTION: deny” → fail because “30-day” is missing → retry with that phrase → pass. JavaScript enables the step buttons and graph controls; the exercises below work without it.</p></noscript>
+<p class="print-only">Example sequence: retrieve the 30-day policy → draft “Outside our refund window. ACTION: deny” → checklist finds missing “30-day” → retry includes “30-day” and keeps “ACTION: deny” → pass.</p>
+<p class="caption">Default limit: two retries after the first draft, so at most three drafts. Exhausting retries can still end in failure.</p>
+<div class="two-paths">
+<div><span class="tag">One ticket · immediate memory</span><h3>“Run this ticket”</h3><p>A failed or repaired learn-set reply can produce a template lesson, saved immediately after filtering. A clean first-try pass saves nothing. Holdout tickets skip lesson writing.</p><p><strong>No suite gate runs here.</strong> A “KEEP” label means saved, not measured improvement.</p></div>
+<div><span class="tag">Batch · test before accepting</span><h3>“Learn + keep/revert”</h3><p>Measure a starting score. Propose lessons from learn-set failures, then score both sets with the candidate instructions. Keep or restore the memory using both thresholds.</p><p><a href="#gate">Try the batch decision rule →</a></p></div>
+</div>
 </section>
-
-<!-- ============ 02 · LIVE DEMO PATH ============ -->
-<section id="demo">
-  <h2><span class="num">02</span>Live Demo / Pre-Sales Path</h2>
-  <blockquote class="quote">“We don’t just call an LLM — we run a visible harness: LangChain for tools/model I/O, LangGraph for the loop, a hard checklist evaluator, LangFuse for traces, then an outer improve loop that only keeps changes that raise scores.”
-    <span class="attr">— The story in one line</span>
-  </blockquote>
-
-  <div class="stage">
-    <div class="when"><div class="t">Step 1 · Warm-up</div><div class="dur">60–90 s</div></div>
-    <div class="what">
-      <h4>Demo one ticket</h4>
-      <ol>
-        <li>Open <code>http://127.0.0.1:5050</code></li>
-        <li>Click <strong>Demo one ticket</strong></li>
-        <li>Point at the strip as it lights: <strong>Click → LangChain → LangGraph → Evaluator</strong> (+ LangFuse if keys set)</li>
-        <li>Open inspector: draft, <code>ACTION:</code> line, pass/fail</li>
-      </ol>
-      <div class="talk">“Customer asks for a refund. LangChain pulls policy. Qwen drafts. Checklist grades — not the model grading itself. If it fails, LangGraph heals and retries.”</div>
-    </div>
-  </div>
-
-  <div class="stage">
-    <div class="when"><div class="t">Step 2 · Baseline</div><div class="dur">3–6 min</div></div>
-    <div class="what">
-      <h4>Run baseline <span class="badge b-live">live: demo suite · 20A/15B</span></h4>
-      <ol>
-        <li>Click <strong>Run baseline</strong></li>
-        <li>When done, read <strong>Part A</strong> and <strong>Part B</strong> rates — then point at <strong>Where it was</strong></li>
-      </ol>
-      <div class="talk">“Cold harness on a labeled suite. Holdout exists so we can’t fake improvement by memorizing the train tickets. Full catalog is 155 tickets; we can run the core subset live.”</div>
-      <p class="kfnote">Proof recording / overnight run: <code>PARCELCO_SUITE=full</code> (100A / 55B). Longer on full.</p>
-    </div>
-  </div>
-
-  <div class="stage">
-    <div class="when"><div class="t">Step 3 · Improve loop</div><div class="dur">5–8 min</div></div>
-    <div class="what">
-      <h4>Start improve loop</h4>
-      <ol>
-        <li>Set rounds to <strong>2</strong></li>
-        <li>Click <strong>Start improve loop</strong></li>
-        <li>When <strong>Improve</strong> lights and history shows <strong>kept / reverted</strong>, pause on <strong>Where it is</strong> + <strong>Lift</strong></li>
-      </ol>
-      <div class="talk">“Outer loop writes lessons, re-scores. We only keep if Part A rises and Part B doesn’t collapse. That’s the flywheel you’d put in production governance — before vs after, not vibes.”</div>
-    </div>
-  </div>
-
-  <div class="stage">
-    <div class="when"><div class="t">Step 4 · Traces</div><div class="dur">optional</div></div>
-    <div class="what">
-      <h4>LangFuse tab <span class="badge">if configured</span></h4>
-      <ol>
-        <li>Open the LangFuse project</li>
-        <li>Find the latest trace for a generate call</li>
-        <li>Show nested spans: retrieve context → LLM → score</li>
-      </ol>
-      <div class="talk">“Observability is first-class — every sales engineer / risk reviewer can audit.”</div>
-      <p class="kfnote">If keys are empty: “Tracing hooks are wired; we turn them on with keys — strip shows optional/off.”</p>
-    </div>
-  </div>
-
-  <h3>What not to claim</h3>
-  <div class="verdicts">
-    <div class="verdict no"><span class="tag">✗ Model weights</span><p>Don’t say the <strong>model weights</strong> improved — say the <strong>harness / memory / prompt</strong> improved.</p></div>
-    <div class="verdict no"><span class="tag">✗ Hide latency</span><p>Don’t hide slow local 4B latency — frame it as “runs on your VPC / laptop.”</p></div>
-    <div class="verdict no"><span class="tag">✗ Workshop 2</span><p>Training an SLM is a <strong>follow-on</strong>, not this demo.</p></div>
-  </div>
-
-  <h3>Setup checklist</h3>
-<pre><code><span class="cm"># LM Studio: Qwen loaded on :1234</span>
-<span class="cmd">cd</span> ~/Desktop/Self\ Improving\ AI\ Agent\ Workshop
-<span class="cmd">source</span> .venv/bin/activate
-<span class="cm"># Live room: demo suite. Proof deck: omit --suite or use full.</span>
-python -m parcelco.cli serve --suite demo</code></pre>
-<pre><code><span class="cm"># Optional .env</span>
-PARCELCO_SUITE=full   <span class="cm"># or demo</span>
-LANGFUSE_PUBLIC_KEY=...
-LANGFUSE_SECRET_KEY=...
-LANGFUSE_HOST=https://cloud.langfuse.com</code></pre>
+<section id="setup">
+<div class="section-head"><span class="section-no">02</span><div><h2>Get set up</h2><p>Following the discussion? Go straight to the exercises. To run the agent yourself, prepare Python and the local model before the session.</p></div></div>
+<div class="split wide-left">
+<div>
+<div class="setup-step"><span class="step-circle">1</span><div><h3>Install the workshop</h3><p>Use Python 3.11 or newer. These commands are for macOS/Linux, from the folder where you want the repo.</p>
+<div class="codebox"><div class="code-label"><span>Terminal · first time</span><button type="button" class="copy js-only" data-copy="install-code">Copy</button></div><pre id="install-code"><code>git clone https://github.com/manasv20/self-improving-ai-agent-workshop.git
+cd self-improving-ai-agent-workshop
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
+python -c "from pathlib import Path; p=Path('.env'); p.exists() or p.write_text(Path('.env.example').read_text())"</code></pre></div>
+<p class="small">Already cloned? Start at the environment step from the repo folder. Windows: use <code>.venv\Scripts\Activate.ps1</code> in PowerShell. <a href="SETUP.md">Full setup instructions</a></p></div></div>
+<div class="setup-step"><span class="step-circle">2</span><div><h3>Connect LM Studio</h3><p>Load a Qwen chat model that fits your machine. Start LM Studio's local server, open <a href="http://127.0.0.1:1234/v1/models" target="_blank" rel="noopener">its model list</a>, and copy the chat model's exact <code>id</code> into <code>.env</code>.</p>
+<div class="codebox"><div class="code-label"><span>.env · replace the model identifier</span><button type="button" class="copy js-only" data-copy="env-code">Copy</button></div><pre id="env-code"><code>OPENAI_BASE_URL=http://127.0.0.1:1234/v1
+OPENAI_API_KEY=lm-studio
+PARCELCO_MODEL=replace-with-your-chat-model-id
+PARCELCO_SUITE=demo
+LANGFUSE_PUBLIC_KEY=
+LANGFUSE_SECRET_KEY=</code></pre></div>
+<p class="small">Leave tracing keys empty for your first run. The API key above is a local-server placeholder; use your token if server authentication is enabled. Embeddings are optional: retrieval falls back to keywords.</p></div></div>
+<div class="setup-step"><span class="step-circle">3</span><div><h3>Check, then open the dashboard</h3>
+<div class="codebox"><div class="code-label"><span>Terminal · environment activated</span><button type="button" class="copy js-only" data-copy="run-code">Copy</button></div><pre id="run-code"><code>python -m unittest discover -s tests -v
+python -c "from parcelco.llm import chat_model; print(chat_model().invoke('Reply with pong.').content)"
+python -m parcelco.cli serve --suite demo</code></pre></div><p>Tests should pass; the model check should return a reply. Open <a href="http://127.0.0.1:5050" target="_blank" rel="noopener">127.0.0.1:5050</a>, choose A01, and click <strong>Run this ticket</strong>.</p></div></div>
+</div>
+<aside class="setup-aside"><p class="eyebrow">Before the room fills up</p><h3 style="margin-top:10px">Get one ticket working.</h3><p class="small">A full suite is not a connectivity test. Start with a single model reply and one ticket.</p>
+<dl><dt>Can't connect to the model?</dt><dd>Start LM Studio's server. Check the address, loaded model, and exact API identifier. Restart ParcelCo after editing <code>.env</code>.</dd><dt>Port 5050 is already in use?</dt><dd>Add <code>--port 5051</code> to the serve command and open port 5051 instead.</dd><dt>Embeddings unavailable?</dt><dd>Continue with keyword retrieval. The chat model is still needed to write replies.</dd><dt>Still downloading?</dt><dd>Pair up. The prediction exercise, example replies, and gate graph work without a model.</dd></dl>
+<div class="note amber"><strong>Rehearsing from a fresh start?</strong><p>The checkout includes prior demo lessons. <strong style="display:inline">Reset memory</strong> restores built-in instructions and clears local round/event history. Back up anything you want to keep first. <a href="SETUP.md#starting-fresh-for-a-rehearsal">Reset details</a></p></div>
+<p class="caption">Stop the app with Ctrl+C in its terminal. If you interrupt batch learning, inspect or reset provisional memory before comparing another run.</p>
+</aside>
+</div>
 </section>
+<section id="exercises">
+<div class="section-head"><span class="section-no">03</span><div><h2>Try it yourself</h2><p>Predict first. Run or discuss the example. Compare what happened with what you expected. Switch drivers after each exercise.</p></div></div>
+<article class="exercise"><div class="exercise-head"><h3>1. Choose the action</h3><small>5 min · everyone</small></div><p>Use <code>refund</code>, <code>deny</code>, <code>escalate</code>, or <code>inform</code>. Refunds are allowed within 30 days; requested policy exceptions go to a human for review.</p>
+<div class="table-wrap"><table><caption>Predict before opening the expected labels.</caption><thead><tr><th scope="col">Ticket</th><th scope="col">Customer situation</th><th scope="col">Your decision</th></tr></thead><tbody><tr><th scope="row">A01</th><td>Delivered 12 days ago; arrived crushed.</td><td>Action + reason?</td></tr><tr><th scope="row">A02</th><td>Delivered 40 days ago; wants a refund.</td><td>Action + reason?</td></tr><tr><th scope="row">A03</th><td>Claims VIP status; wants an exception for a two-month-old order.</td><td>Action + reason?</td></tr></tbody></table></div>
+<p class="try">In the dashboard: select <strong>Demo → Learn</strong>, choose A01, then <strong>Run this ticket</strong>. Explain the policy decision even if the reply fails.</p>
+<details><summary>Reveal the answers</summary><div><p><strong>A01 → refund.</strong> Damage was reported within the window. <strong>A02 → deny.</strong> Forty days is outside it. <strong>A03 → escalate.</strong> A human must review the requested exception; the agent cannot grant VIP exceptions itself.</p><p>Refund/deny replies must mention the <code>30-day</code> rule. Escalations should promise specialist follow-up within one business day.</p></div></details>
+<p class="checkpoint">Code checkpoint: compare the ticket message with <code>parcelco/data/expected/A02.json</code>.</p></article>
+<article class="exercise"><div class="exercise-head"><h3>2. Be the evaluator</h3><small>10 min · no model needed</small></div><p>Both replies deny the late refund. A02's checklist requires the exact phrase <code>30-day</code> and the action <code>deny</code>. Which passes?</p>
+<div class="reply-pair"><div class="reply-sample"><p class="tag">Reply A</p><p>I'm sorry, but this order is outside our refund window.</p><code>ACTION: deny</code></div><div class="reply-sample"><p class="tag">Reply B</p><p>I'm sorry, but this order is outside our 30-day refund window.</p><code>ACTION: deny</code></div></div>
+<p class="try">Now substitute “30 days.” Is it still good English? Does it still match the label?</p>
+<details><summary>Reveal the result and run the checker</summary><div><p><strong>A fails; B passes.</strong> “30 days” fails A02's literal phrase requirement too. Some other labels accept alternatives using <code>must_include_any</code>. A passing checklist does not establish that every aspect of the reply is good.</p>
+<div class="codebox"><div class="code-label"><span>Python · paste into a .py file and run</span><button type="button" class="copy js-only" data-copy="eval-code">Copy</button></div><pre id="eval-code"><code>from parcelco.data_io import load_expected
+from parcelco.eval.checklist import score_draft
 
-<!-- ============ 03 · SCREEN LAYOUT ============ -->
-<section id="screen">
-  <h2><span class="num">03</span>Screen Layout — What Buyers See</h2>
-  <p class="lede">Each dashboard panel, paired with the sentence that sells it.</p>
-  <div class="panellist">
-    <div class="panel"><span class="pn">[01]</span><h5>Stack strip (top)</h5><p>“These are the productized layers — watch them light up.”</p></div>
-    <div class="panel"><span class="pn">[02]</span><h5>LangGraph nodes</h5><p>“Inner loop: retrieve → generate → evaluate → heal.”</p></div>
-    <div class="panel"><span class="pn">[03]</span><h5>Activity feed</h5><p>“Narration of each layer as it fires.”</p></div>
-    <div class="panel"><span class="pn">[04]</span><h5>Scoreboard + chart</h5><p>“Proof: Part A learn set, Part B holdout — bigger suite so lift is visible.”</p></div>
-    <div class="panel"><span class="pn">[05]</span><h5>Where it was → where it is</h5><p>“Same numbers, framed as before/after for the buyer.”</p></div>
-    <div class="panel"><span class="pn">[06]</span><h5>History</h5><p>“Audit log of keep vs revert.”</p></div>
-    <div class="panel"><span class="pn">[07]</span><h5>Inspector</h5><p>“One ticket’s draft + checklist + retrieved docs.”</p></div>
-    <div class="panel"><span class="pn">[08]</span><h5>LangFuse (browser tab)</h5><p>“Same run as nested spans / cost / prompt version.”</p></div>
-  </div>
+expected = load_expected("A02")
+for phrase in ["refund window", "30-day refund window"]:
+    draft = f"I'm sorry, but this order is outside our {phrase}.\nACTION: deny"
+    result = score_draft(draft, expected)
+    print(result.passed, result.missing, result.detected_action)
+
+# False ['30-day'] deny
+# True [] deny</code></pre></div></div></details>
+<p class="checkpoint">Code checkpoint: <code>parcelco/eval/checklist.py</code>. Try changing the action while leaving the required phrase in place.</p></article>
+<article class="exercise"><div class="exercise-head"><h3>3. Find what changed in a retry</h3><small>10–15 min · dashboard or example</small></div><ol><li>Run A02 or A03. If it retries, inspect <strong>Heal trail</strong>.</li><li>Compare the first reply, the missing phrases/action feedback, and the next reply.</li><li>Read <strong>Reflect lesson</strong> and <strong>Memory</strong>. Was a lesson saved?</li><li>Run a holdout ticket. Reflection should skip writing a lesson.</li></ol><p>If every reply passes immediately, use the <a href="#loop">constructed walkthrough</a>. There is no need to force a live failure.</p>
+<details><summary>Check your explanation</summary><div><p>Two retries means <strong>three drafts total</strong>. The repair brief includes the prior draft and specific fixes. Reaching the limit can leave a failure; it does not automatically escalate the ticket.</p><p>A single-ticket lesson can be saved without testing the suite. A clean first-try pass saves nothing. A holdout ticket does not write durable lessons, but its retry can still receive the expected action and missing phrases.</p></div></details><p class="checkpoint">Code checkpoint: <code>parcelco/heal.py</code>, then <code>_should_heal()</code> in <code>parcelco/graphs/inner.py</code>.</p></article>
+<article class="exercise"><div class="exercise-head"><h3>4. Test the lesson before keeping it</h3><small>10 min · graph below</small></div><p>Start with 18/28 A tickets and 14/19 B tickets passing. Predict each candidate's outcome, then use the graph to check.</p><div class="table-wrap"><table><thead><tr><th scope="col">Candidate</th><th scope="col">A passed</th><th scope="col">B passed</th></tr></thead><tbody><tr><th scope="row">Two more A passes</th><td>20/28</td><td>14/19</td></tr><tr><th scope="row">One B ticket lost</th><td>20/28</td><td>13/19</td></tr><tr><th scope="row">Only one more A pass</th><td>19/28</td><td>14/19</td></tr></tbody></table></div>
+<details><summary>Reveal the gate decisions</summary><div><p><strong>Keep, revert, revert.</strong> Two extra A passes gain 7.14 percentage points. One lost B pass drops B by 5.26 points, over the tolerance. One extra A pass gains only 3.57 points, below the required gain.</p></div></details>
+<details style="margin-top:12px"><summary>Optional: score and learn on your own model</summary><div><p>Back up/reset before a fresh comparison. Use the same model, suite, and retry limit; avoid single-ticket runs that change memory between measurements.</p><p>Expand <strong>Optional · suite proof (Score / Learn / Reset)</strong>. Click <strong>Score suite</strong>, set rounds to <strong>1</strong>, then click <strong>Learn + keep/revert</strong>. Read both scores and the kept/reverted label.</p><div class="codebox"><div class="code-label"><span>CLI equivalents</span><button type="button" class="copy js-only" data-copy="batch-code">Copy</button></div><pre id="batch-code"><code>python -m parcelco.cli baseline --suite demo
+python -m parcelco.cli improve --suite demo --rounds 1</code></pre></div><p><code>improve</code> runs its own starting baseline. One round evaluates the 47-ticket suite twice, with up to three drafts per ticket, plus reflection. Use rehearsal timings; no improvement is guaranteed.</p></div></details>
+<p class="checkpoint">Done when: explain the decision using both rates. See <a href="WORKSHOP.md">the full exercises</a> for more code experiments.</p></article>
 </section>
-
-<!-- ============ 04 · SPEAKER NOTES ============ -->
-<section id="speaker">
-  <h2><span class="num">04</span>Speaker Notes</h2>
-  <p class="lede">Open with the mismatch fix (2 min), then leave the dashboard teach strip up the whole session.</p>
-
-  <blockquote class="quote">“It’s not two systems. It’s one loop: retrieve → generate → evaluate → heal → reflect → keep/revert.”
-    <span class="attr">— Opening line</span>
-  </blockquote>
-
-  <h3>Setup</h3>
-  <ul class="clean">
-    <li>Qwen in <strong>LM Studio</strong></li>
-    <li><code>python -m parcelco.cli serve --suite demo</code></li>
-    <li>Optional LangFuse</li>
-  </ul>
-
-  <h3>Script</h3>
-  <ol class="clean">
-    <li>Pick a ticket from the <strong>1000</strong>-ticket catalog (demo filters to core 35)</li>
-    <li><strong>Run loop on ticket</strong> — narrate each node as it lights</li>
-    <li>Hard ticket → show <strong>Loop attempts</strong> (heal)</li>
-    <li><strong>Score suite</strong> / <strong>Learn</strong> — Reflect node + where it was → now</li>
-    <li>LangFuse trace (optional)</li>
-  </ol>
-
-  <h3>Say this</h3>
-  <div class="verdicts stack">
-    <div class="verdict ok"><span class="tag">✓ Say</span><p>Heal = retry step in the <strong>same</strong> loop.</p></div>
-    <div class="verdict ok"><span class="tag">✓ Say</span><p>Learn set vs holdout = proof we didn’t memorize.</p></div>
-    <div class="verdict ok"><span class="tag">✓ Say</span><p>Weights frozen; memory gated.</p></div>
-  </div>
-
-  <h3>Pitfalls</h3>
-  <div class="warn"><b>⚠ Latency</b>Full suite feels stuck on 4B — use <code>--suite demo</code>.</div>
-  <div class="warn"><b>⚠ Runaway</b><code>Ctrl+C</code> stops serve + background job.</div>
+<section id="gate">
+<div class="section-head"><span class="section-no">04</span><div><h2>Keep or revert?</h2><p>A better learn-set score is only half the decision. Move the candidate's pass counts and see how the batch gate responds.</p></div></div>
+<p class="note" style="margin-bottom:25px"><strong>Teaching example · not measured model results</strong>The set sizes and default thresholds match the repo. Starting scores and candidate results below are invented for this exercise.</p>
+<div class="gate-layout">
+<div>
+<div class="gate-controls">
+<div class="range-field"><div class="range-label"><label for="a-count">Candidate A · learn</label><output id="a-count-label" for="a-count">20 / 28</output></div><input class="js-only" type="range" id="a-count" min="0" max="28" step="1" value="20" aria-describedby="a-help"><div class="range-ends" id="a-help"><span>0 passed</span><span>28 passed</span></div></div>
+<div class="range-field"><div class="range-label"><label for="b-count">Candidate B · holdout</label><output id="b-count-label" for="b-count">14 / 19</output></div><input class="js-only" type="range" id="b-count" min="0" max="19" step="1" value="14" aria-describedby="b-help"><div class="range-ends" id="b-help"><span>0 passed</span><span>19 passed</span></div></div>
+<div class="presets js-only" role="group" aria-label="Example candidate scenarios"><button type="button" data-a="20" data-b="14" aria-pressed="true">A improves</button><button type="button" data-a="20" data-b="13" aria-pressed="false">B loses one</button><button type="button" data-a="19" data-b="14" aria-pressed="false">A gains one</button></div>
+<div class="gate-formula">Default batch rule · both must pass<code>candidate A ≥ accepted A + 0.05</code><code>candidate B ≥ accepted B − 0.05</code></div>
+</div>
+<div class="gate-result" id="gate-result" data-verdict="keep" aria-live="polite" aria-atomic="true"><h3 id="verdict">Keep this candidate</h3><p id="gate-explanation">A gains 7.14 percentage points; it needs at least 5. B changes by 0.00 points; it may drop no more than 5. Both conditions pass.</p></div>
+</div>
+<figure>
+<div class="legend"><span><i class="swatch" aria-hidden="true"></i>Starting score</span><span><i class="swatch blue" aria-hidden="true"></i>Candidate</span></div>
+<div class="chart" role="img" id="gate-chart" aria-label="A starts at 64.29 percent and candidate is 71.43 percent. B starts at 73.68 percent and candidate is 73.68 percent.">
+<div class="chart-scale"><span>0%</span><span>50%</span><span>100%</span></div>
+<div class="chart-group"><h3>A / learn set</h3><div class="bar-track"><div class="bar" style="width:64.285714%"></div></div><div class="bar-track"><div class="bar candidate" id="a-bar" style="width:71.428571%"></div></div><p class="bar-values" id="a-values">18/28 → 20/28 · 64.29% → 71.43%</p></div>
+<div class="chart-group"><h3>B / holdout</h3><div class="bar-track"><div class="bar" style="width:73.684211%"></div></div><div class="bar-track"><div class="bar candidate" id="b-bar" style="width:73.684211%"></div></div><p class="bar-values" id="b-values">14/19 → 14/19 · 73.68% → 73.68%</p></div>
+</div>
+<figcaption class="caption">Pass rate = tickets passing every check ÷ tickets evaluated, after retries. It is not the average partial-check score.</figcaption>
+<p class="caption">With 19 holdout tickets, losing one pass costs 5.26 percentage points. Use exact fractions to evaluate the rule; rounded percentages can conceal a threshold crossing.</p>
+</figure>
+</div>
+<div class="limits"><h3>What this graph cannot tell you</h3><ul><li><strong>Expected answers help retries.</strong> Repair instructions can reveal the correct action and missing phrases, including on B. These are not independent first-attempt scores.</li><li><strong>B is a validation signal.</strong> It does not write durable lessons, but repeated candidate selection uses its score. That does not prove the absence of memorization.</li><li><strong>The reference moves.</strong> Each accepted round becomes the next comparison point. Allowed B drops can accumulate. A saved single-ticket lesson has no such score test.</li><li><strong>A checklist covers only its checks.</strong> Review meaning, tone, and broader scenarios too. A separate untouched test set would support stronger conclusions.</li></ul></div>
 </section>
-
-<!-- ============ 05 · WORKSHOP BUILD ============ -->
-<section id="workshop">
-  <h2><span class="num">05</span>Workshop 1 — Build the One Loop</h2>
-  <p class="lede"><strong>Outcome:</strong> everyone can run and explain <strong>one self-improving loop</strong> in realtime.</p>
-
-  <dl class="pairs">
-    <div>
-      <dt><span class="tag">TRACK A</span>Run &amp; inspect</dt>
-      <dd>Use this repo; follow the UI teach strip.</dd>
-    </div>
-    <div>
-      <dt><span class="tag">TRACK B</span>Build with us</dt>
-      <dd>Implement each step; peek at finished files when stuck.</dd>
-    </div>
-  </dl>
-
-  <h3>Prerequisites</h3>
-<pre><code><span class="cmd">cd</span> ~/Desktop/Self\ Improving\ AI\ Agent\ Workshop
-python3 -m venv .venv &amp;&amp; <span class="cmd">source</span> .venv/bin/activate
-pip install -e .
-cp -n .env.example .env
-<span class="cm"># LM Studio: Qwen on http://127.0.0.1:1234/v1</span></code></pre>
-  <p>Ping the model:</p>
-<pre><code>python -c "from parcelco.llm import chat_model; print(chat_model().invoke('Reply: pong').content[:40])"</code></pre>
-
-  <h3>Live room path — Track A · 20 min demo inside the build</h3>
-<pre><code>python -m parcelco.cli serve --suite demo
-<span class="cm"># http://127.0.0.1:5050</span></code></pre>
-  <ol class="clean">
-    <li>Teach strip: <strong>Pick → Run → Heal → Learn</strong></li>
-    <li>Pick a hard ticket (VIP / invent amount) → <strong>Run loop on ticket</strong></li>
-    <li>Watch <strong>one loop</strong> nodes + <strong>Loop attempts</strong></li>
-    <li><strong>Score suite</strong> → where it was</li>
-    <li><strong>Learn (1 round)</strong> → Reflect node + where it is now</li>
-    <li>Optional LangFuse open trace</li>
-  </ol>
-  <p class="kfnote">Dataset: <strong>1000</strong> labeled tickets (700 learn / 300 holdout). Demo suite = core 35 for speed.</p>
-
-  <h3>Build checkpoints — Track B</h3>
-  <table>
-    <caption>Table 2 — checkpoints</caption>
-    <tr><th style="width:36px">#</th><th>Checkpoint</th><th style="width:230px">Where</th></tr>
-    <tr><td class="num">0</td><td><strong>Data</strong> — tickets + <code>expected/{id}.json</code>; verify load returns <strong>1000</strong></td><td><code>parcelco.data_io</code></td></tr>
-    <tr><td class="num">1</td><td><strong>Evaluate (checklist)</strong> — ACTION + must_include / must_not</td><td><code>parcelco/eval/checklist.py</code></td></tr>
-    <tr><td class="num">2</td><td><strong>Retrieve (RAG)</strong></td><td><code>parcelco/rag.py</code></td></tr>
-    <tr><td class="num">3</td><td><strong>Loop body</strong> — retrieve → generate → evaluate → heal; <em>the loop for one ticket</em></td><td><code>parcelco/graphs/inner.py</code></td></tr>
-    <tr><td class="num">4</td><td><strong>Reflect + gate</strong> on the suite — same loop across many tickets; keep/revert</td><td><code>parcelco/graphs/outer.py</code></td></tr>
-    <tr><td class="num">5</td><td><strong>UI + LangFuse</strong> — one workspace, teach strip, realtime nodes</td><td>serve + scripts</td></tr>
-  </table>
-<pre><code><span class="cm"># Checkpoint 0 verify:</span>
-python -c "from parcelco.data_io import load_tickets; print(len(load_tickets(None, respect_suite=False)))"  <span class="cm"># expect 1000</span></code></pre>
-
-  <h3>Facilitator schedule — 60–75 min</h3>
-  <table>
-    <caption>Table 3 — agenda</caption>
-    <tr><th style="width:90px">Min</th><th>Block</th></tr>
-    <tr><td class="num">0–8</td><td>One-loop punchline + open UI</td></tr>
-    <tr><td class="num">8–20</td><td>Checkpoint 1–2 together</td></tr>
-    <tr><td class="num">20–40</td><td>Checkpoint 3 — run tickets live</td></tr>
-    <tr><td class="num">40–55</td><td>Checkpoint 4 — score + learn</td></tr>
-    <tr><td class="num">55–70</td><td>LangFuse + Q&amp;A</td></tr>
-    <tr><td class="num">70–75</td><td>Workshop 2 teaser</td></tr>
-  </table>
-  <div class="warn"><b>⚠ Live</b>Use <code>--suite demo</code> live. Full 1000 is for overnight / recorded proof. Stop a runaway suite with <code>Ctrl+C</code> on serve.</div>
-
-  <h3>Done when</h3>
-  <ul class="checklist">
-    <li>You can draw the one loop from memory</li>
-    <li>A live ticket shows heal attempts</li>
-    <li>Score → Learn updates where it was → where it is now</li>
-    <li>You never say “two loops” — only steps of one loop</li>
-  </ul>
-</section>
-
-<!-- ============ 06 · LANGFUSE ============ -->
-<section id="langfuse">
-  <h2><span class="num">06</span>LangFuse — Self-Hosted with Docker</h2>
-  <p class="lede">Langfuse is MIT open source. The workshop vendors the official compose stack under <code>docker/langfuse/</code>.</p>
-
-  <h3>Start</h3>
-<pre><code><span class="cmd">cd</span> ~/Desktop/Self\ Improving\ AI\ Agent\ Workshop
-<span class="cmd">chmod</span> +x scripts/start-langfuse.sh scripts/stop-langfuse.sh
-./scripts/start-langfuse.sh</code></pre>
-  <p>Or directly:</p>
-<pre><code><span class="cmd">cd</span> docker/langfuse
-docker compose --env-file .env up -d</code></pre>
-
-  <table>
-    <caption>Table 4 — endpoints &amp; credentials</caption>
-    <tr><th style="width:180px">What</th><th>Value</th></tr>
-    <tr><td>LangFuse UI</td><td><code>http://localhost:3000</code></td></tr>
-    <tr><td>Login</td><td><code>workshop@parcelco.local</code> / <code>WorkshopDemo1!</code></td></tr>
-    <tr><td>Ports</td><td><strong>3000</strong> UI · <strong>9090</strong> minio · localhost-only DB ports</td></tr>
-  </table>
-
-  <h3>Wire ParcelCo — repo root <code>.env</code></h3>
-<pre><code>LANGFUSE_PUBLIC_KEY=pk-lf-workshop-aa8504fbeda3a221cb5d6a06dd9bd83c
-LANGFUSE_SECRET_KEY=sk-lf-workshop-4bfad518fa4844a0a79e1d3cd0585409
-LANGFUSE_HOST=http://localhost:3000</code></pre>
-  <p>Then restart the Flask app:</p>
-<pre><code><span class="cmd">source</span> .venv/bin/activate
-python -m parcelco.cli serve</code></pre>
-
-  <h3>On the dashboard</h3>
-  <ul class="clean">
-    <li>Stack step <strong>LangFuse</strong> shows connected / Tracing ON when keys + auth work</li>
-    <li><strong>LangFuse traces</strong> panel lists recent ticket traces with <strong>Open trace</strong> links</li>
-    <li><strong>Open LangFuse</strong> opens the UI; the inspector links to that run’s trace</li>
-  </ul>
-  <p class="kfnote">Langfuse sets <code>X-Frame-Options: SAMEORIGIN</code>, so the full UI opens in a tab rather than an iframe.</p>
-
-  <h3>Stop</h3>
-<pre><code>./scripts/stop-langfuse.sh</code></pre>
-
-  <h3>Notes</h3>
-  <ul class="clean">
-    <li>Needs <strong>Docker Desktop</strong> (or Docker Engine + Compose v2)</li>
-    <li>First boot pulls several images (web, worker, postgres, clickhouse, redis, minio) — can take a few minutes</li>
-    <li>Workshop secrets in <code>docker/langfuse/.env</code> are fine for local demos; <strong>rotate before any shared/networked deploy</strong></li>
-  </ul>
-</section>
-
-<!-- ============ 07 · CHEAT SHEET ============ -->
-<section id="cheatsheet">
-  <h2><span class="num">07</span>Cheat Sheet</h2>
-  <p class="lede">Everything you need at the podium, one glance.</p>
-
-  <dl class="pairs">
-    <div>
-      <dt><span class="tag">ENDPOINTS</span></dt>
-      <dd>Dashboard — <code>http://127.0.0.1:5050</code><br>LangFuse UI — <code>http://localhost:3000</code><br>LM Studio (Qwen) — <code>http://127.0.0.1:1234/v1</code></dd>
-    </div>
-    <div>
-      <dt><span class="tag">KEY NUMBERS</span></dt>
-      <dd>Catalog — <strong>1000</strong> tickets · 700 A / 300 B<br>Demo suite — <strong>35</strong> core (20A / 15B)<br>Full suite — 100A / 55B</dd>
-    </div>
-  </dl>
-
-  <h3>Commands</h3>
-<pre><code><span class="cm"># serve the dashboard (live room)</span>
+<section id="reference">
+<div class="section-head"><span class="section-no">05</span><div><h2>At a glance</h2><p>The numbers, commands, and terms you are likely to need while teaching.</p></div></div>
+<div class="split">
+<div><h3>Use the demo suite live</h3><div class="dataset-chart" role="img" aria-label="Demo suite has 28 learn-set tickets and 19 holdout tickets, 47 total."><div>A · 28 learn</div><div>B · 19 holdout</div></div><p class="caption">47 core tickets, including ambiguous examples. The original 35-ticket demo has expanded.</p><div class="table-wrap"><table><thead><tr><th scope="col">Suite</th><th scope="col">A</th><th scope="col">B</th><th scope="col">Total</th></tr></thead><tbody><tr><th scope="row">demo</th><td>28</td><td>19</td><td>47</td></tr><tr><th scope="row">full</th><td>700</td><td>300</td><td>1,000</td></tr></tbody></table></div><p class="small">The full catalog includes synthetic variations. More tickets do not necessarily mean more independent scenarios.</p></div>
+<div><h3>A 60-minute room plan</h3><div class="agenda" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="table-wrap"><table><caption>Setup and downloads happen before the session.</caption><tbody><tr><th scope="row">00–05</th><td>Policy + one customer ticket</td></tr><tr><th scope="row">05–12</th><td>Predict the action</td></tr><tr><th scope="row">12–22</th><td>Grade the sample replies</td></tr><tr><th scope="row">22–37</th><td>Inspect a retry and a lesson</td></tr><tr><th scope="row">37–50</th><td>Try the gate graph</td></tr><tr><th scope="row">50–60</th><td>Discuss limits + questions</td></tr></tbody></table></div></div>
+</div>
+<details><summary>Commands and reset behavior</summary><div><div class="codebox"><div class="code-label"><span>Terminal · from the repo with .venv active</span><button type="button" class="copy js-only" data-copy="reference-code">Copy</button></div><pre id="reference-code"><code># Start the live dashboard
 python -m parcelco.cli serve --suite demo
 
-<span class="cm"># ping Qwen</span>
-python -c "from parcelco.llm import chat_model; print(chat_model().invoke('Reply: pong').content[:40])"
+# Verify the current demo counts
+python -c "import os; from parcelco.data_io import suite_info; os.environ['PARCELCO_SUITE']='demo'; print(suite_info())"
 
-<span class="cm"># verify dataset (expect 1000)</span>
-python -c "from parcelco.data_io import load_tickets; print(len(load_tickets(None, respect_suite=False)))"
-
-<span class="cm"># LangFuse up / down</span>
-./scripts/start-langfuse.sh
-./scripts/stop-langfuse.sh
-
-<span class="cm"># stop everything</span>
-Ctrl+C   <span class="cm"># stops serve + background job</span></code></pre>
-
-  <blockquote class="quote">“One loop. Act, check, heal, reflect, keep only when the numbers say so. Weights stay frozen.”
-    <span class="attr">— Leave them with this</span>
-  </blockquote>
+# Serve this reference guide in a separate terminal
+python -m http.server 8000 --bind 127.0.0.1 --directory docs</code></pre></div><p><strong>Reset is a separate, deliberate step.</strong> Back up the prompt, learnings, and local SQLite history you want to keep. With no job running, <code>python -m parcelco.cli reset</code> restores built-in memory and clears local round/event history. It leaves the retrieval index and remote traces alone.</p><p>To stop, press Ctrl+C in each server terminal. If a batch was interrupted, inspect or reset memory before resuming a score comparison.</p></div></details>
+<dl class="glossary"><dt>Harness</dt><dd>The code around the model: retrieval, checks, retries, and memory.</dd><dt>RAG</dt><dd>Find relevant policy text and include it in the model request.</dd><dt>Heal</dt><dd>Retry the current reply with specific failure feedback.</dd><dt>Reflect</dt><dd>Write a lesson for later tickets from failure signals.</dd><dt>Gate</dt><dd>Accept or reject a batch candidate using both score thresholds.</dd><dt>Langfuse</dt><dd>Optional records of model calls and checklist scores. Python remains the grader.</dd></dl>
+<div class="note" style="margin-top:28px"><strong>A useful closing question</strong>“What changed, what stayed fixed, and what would you test before trusting this with real customers?”</div>
+<details style="margin-top:22px"><summary>Facilitator fallbacks and optional tracing</summary><div><p><strong>No live model?</strong> Use the sample replies and gate graph. <strong>No retry?</strong> Explain the constructed example. <strong>No gain?</strong> Explain why the candidate was reverted. Completing the exercise does not require improved scores.</p><p>If Langfuse is already configured, open a ticket trace and compare generation count with the attempt trail: two heals should mean three generations. Ingestion may lag. Setup is optional; follow the <a href="LANGFUSE_DOCKER.md">Langfuse guide</a> before the event.</p><p>Single-ticket “KEEP” means saved. Batch “KEEP” means the configured thresholds passed. Use that wording even if the live dashboard uses broader “proof” labels.</p></div></details>
+<div class="ref-links" aria-label="Detailed documentation"><a href="SETUP.md">Setup + troubleshooting ↗</a><a href="WORKSHOP.md">Full exercises + code checkpoints ↗</a><a href="CONCEPT.md">Concepts + evaluation limits ↗</a><a href="SPEAKER_NOTES.md">Facilitator notes ↗</a><a href="PRESALES_DEMO.md">15-minute walkthrough ↗</a><a href="LANGFUSE_DOCKER.md">Optional Langfuse setup ↗</a></div>
 </section>
-
-<footer>
-  <span>ParcelCo Flywheel · Workshop 1 · Field Guide</span>
-  <span>CONCEPT / WORKSHOP / PRESALES / SPEAKER / LANGFUSE</span>
-</footer>
-
+<footer><span>ParcelCo / AI agent workshop</span><span>Local guide · no external assets · <a href="#start">Back to start ↑</a></span></footer>
 </main>
-
 <script>
-  // scrollspy
-  const links=[...document.querySelectorAll('nav a')];
-  const secs=links.map(a=>document.querySelector(a.getAttribute('href')));
-  const spy=new IntersectionObserver(es=>{
-    es.forEach(e=>{if(e.isIntersecting){
-      links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));
-    }});
-  },{rootMargin:'-15% 0px -75% 0px'});
-  secs.forEach(s=>spy.observe(s));
+(() => {
+  'use strict';
+  document.documentElement.classList.add('ready');
+  const byId = id => document.getElementById(id);
+  const steps = [
+    {label:'Retrieve', title:'Bring the policy into the request', text:'The retriever finds policy and FAQ text. The refund policy says requests outside the 30-day window should be denied under standard policy.', draft:'Policy: refunds are allowed only within 30 days of delivery.', note:'RAG means retrieval-augmented generation: find relevant text, then include it when asking the model to write.'},
+    {label:'Generate', title:'A plausible reply can miss a check', text:'The model drafts a response using the ticket, retrieved text, system prompt, and saved lessons. In this constructed example, it makes the correct decision but leaves out a required phrase.', draft:"I'm sorry, but this order is outside our refund window.\nACTION: deny", note:'The model weights stay fixed. The text provided with each request can change.'},
+    {label:'Evaluate', title:'The action passes. The phrase does not.', text:'The Python checklist loads A02’s expected label. It finds ACTION: deny, but it cannot find the required substring “30-day”. This attempt fails.', draft:"action_ok: true\nmissing: ['30-day']\npassed: false", note:'The check is literal and case-insensitive. “30 days” also fails this particular label, even though it means the same thing.'},
+    {label:'Heal + retry', title:'Send a specific repair instruction', text:'The repair brief includes the previous draft and asks for the missing phrase while keeping ACTION: deny. The workflow returns to Retrieve, generates again, and evaluates the new reply.', draft:"I'm sorry, but this order is outside our 30-day refund window.\nACTION: deny", note:'This constructed reply passes A02’s checks. A live model can still fail. After a repaired learn-set run, the dashboard may save a lesson without running the suite gate.'}
+  ];
+  let currentStep = 0;
+  function showStep(index) {
+    currentStep = Math.max(0, Math.min(steps.length - 1, index));
+    const s = steps[currentStep];
+    byId('walk-label').textContent = `Step ${currentStep + 1} of 4 · ${s.label}`;
+    byId('walk-title').textContent = s.title;
+    byId('walk-text').textContent = s.text;
+    byId('walk-draft').textContent = s.draft;
+    byId('walk-draft').style.whiteSpace = 'pre-line';
+    byId('walk-note').textContent = s.note;
+    byId('walk-count').textContent = `${currentStep + 1} / 4`;
+    byId('walk-prev').disabled = currentStep === 0;
+    byId('walk-next').disabled = currentStep === 3;
+    document.querySelectorAll('[data-step]').forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.step) === currentStep)));
+  }
+  document.querySelectorAll('[data-step]').forEach(button => button.addEventListener('click', () => showStep(Number(button.dataset.step))));
+  byId('walk-prev').addEventListener('click', () => showStep(currentStep - 1));
+  byId('walk-next').addEventListener('click', () => showStep(currentStep + 1));
 
-  // keyboard navigation — section to section, like slides
-  let idx=0;
-  function go(i){idx=Math.max(0,Math.min(secs.length-1,i));secs[idx].scrollIntoView({behavior:'smooth',block:'start'});}
-  document.addEventListener('keydown',e=>{
-    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key==='PageDown'){e.preventDefault();go(idx+1);}
-    if(e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='PageUp'){e.preventDefault();go(idx-1);}
-    if(e.key==='Home'){e.preventDefault();go(0);}
-    if(e.key==='End'){e.preventDefault();go(secs.length-1);}
-    if(e.key==='p'||e.key==='P'){document.body.classList.toggle('present');}
+  const startA = 18 / 28, startB = 14 / 19;
+  const percent = n => (n * 100).toFixed(2);
+  const signed = n => (n > 0 ? '+' : '') + (n * 100).toFixed(2);
+  function updateGate() {
+    const aCount = Number(byId('a-count').value), bCount = Number(byId('b-count').value);
+    const a = aCount / 28, b = bCount / 19;
+    const aOK = a >= startA + 0.05;
+    const bOK = b + 1e-9 >= startB - 0.05;
+    const kept = aOK && bOK;
+    byId('a-count-label').textContent = `${aCount} / 28`;
+    byId('b-count-label').textContent = `${bCount} / 19`;
+    byId('a-count').setAttribute('aria-valuetext', `${aCount} of 28 tickets pass, ${percent(a)} percent`);
+    byId('b-count').setAttribute('aria-valuetext', `${bCount} of 19 tickets pass, ${percent(b)} percent`);
+    byId('a-bar').style.width = `${a * 100}%`;
+    byId('b-bar').style.width = `${b * 100}%`;
+    byId('a-values').textContent = `18/28 → ${aCount}/28 · ${percent(startA)}% → ${percent(a)}%`;
+    byId('b-values').textContent = `14/19 → ${bCount}/19 · ${percent(startB)}% → ${percent(b)}%`;
+    byId('gate-chart').setAttribute('aria-label', `A starts at ${percent(startA)} percent and candidate is ${percent(a)} percent. B starts at ${percent(startB)} percent and candidate is ${percent(b)} percent.`);
+    byId('gate-result').dataset.verdict = kept ? 'keep' : 'revert';
+    byId('verdict').textContent = kept ? 'Keep this candidate' : 'Revert this candidate';
+    byId('gate-explanation').textContent = `A changes by ${signed(a - startA)} percentage points; it needs at least +5. B changes by ${signed(b - startB)} points; it may drop no more than 5. ${kept ? 'Both conditions pass.' : [!aOK ? 'A’s gain is too small.' : '', !bOK ? 'B’s drop is too large.' : ''].filter(Boolean).join(' ')}`;
+    document.querySelectorAll('[data-a]').forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.a) === aCount && Number(button.dataset.b) === bCount)));
+  }
+  ['a-count', 'b-count'].forEach(id => byId(id).addEventListener('input', updateGate));
+  document.querySelectorAll('[data-a]').forEach(button => button.addEventListener('click', () => {
+    byId('a-count').value = button.dataset.a;
+    byId('b-count').value = button.dataset.b;
+    updateGate();
+  }));
+  updateGate();
+
+  const announcements = document.createElement('p');
+  announcements.setAttribute('role', 'status');
+  Object.assign(announcements.style, {position:'absolute', width:'1px', height:'1px', overflow:'hidden', clipPath:'inset(50%)'});
+  document.body.appendChild(announcements);
+  document.querySelectorAll('[data-copy]').forEach(button => button.addEventListener('click', async () => {
+    const source = byId(button.dataset.copy);
+    try {
+      if (!navigator.clipboard || !window.isSecureContext) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(source.textContent);
+      button.textContent = 'Copied';
+      announcements.textContent = 'Command copied to clipboard.';
+      setTimeout(() => { button.textContent = 'Copy'; }, 1800);
+    } catch {
+      const range = document.createRange();
+      range.selectNodeContents(source);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      button.textContent = 'Selected';
+      announcements.textContent = 'Text selected. Press Command+C or Control+C to copy.';
+      setTimeout(() => { button.textContent = 'Copy'; }, 2500);
+    }
+  }));
+
+  function present(on) {
+    document.body.classList.toggle('presentation', on);
+    byId('present').setAttribute('aria-pressed', String(on));
+    (on ? byId('exit-present') : byId('present')).focus();
+  }
+  byId('present').addEventListener('click', () => present(!document.body.classList.contains('presentation')));
+  byId('exit-present').addEventListener('click', () => present(false));
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && document.body.classList.contains('presentation')) present(false);
   });
-  window.addEventListener('scroll',()=>{
-    const active=document.querySelector('nav a.active');
-    const i=links.indexOf(active);
-    if(i>=0)idx=i;
-  },{passive:true});
-
-  document.getElementById('presentToggle').addEventListener('click',()=>document.body.classList.toggle('present'));
+  byId('print').addEventListener('click', () => window.print());
+  let closedDetails = [];
+  window.addEventListener('beforeprint', () => {
+    closedDetails = [...document.querySelectorAll('details:not([open])')];
+    closedDetails.forEach(detail => { detail.open = true; });
+  });
+  window.addEventListener('afterprint', () => {
+    closedDetails.forEach(detail => { detail.open = false; });
+    closedDetails = [];
+  });
+  const navLinks = [...document.querySelectorAll('nav a')];
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) navLinks.forEach(link => {
+          if (link.hash === '#' + entry.target.id) link.setAttribute('aria-current', 'location');
+          else link.removeAttribute('aria-current');
+        });
+      });
+    }, {rootMargin:'-5% 0px -65% 0px', threshold:0});
+    document.querySelectorAll('main > section').forEach(section => observer.observe(section));
+  }
+})();
 </script>
 </body>
 </html>
