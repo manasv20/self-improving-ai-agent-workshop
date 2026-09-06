@@ -19,12 +19,15 @@ Concept card: [CONCEPT.md](CONCEPT.md). Facilitator: [SPEAKER_NOTES.md](SPEAKER_
 
 ## Prerequisites
 
+Complete [LOCAL_SETUP.md](LOCAL_SETUP.md) first: Qwen3.5-4B and Nomic embeddings
+must be loaded in LM Studio. Run commands from the checkout with `pyproject.toml`.
+
 ```bash
-cd ~/Desktop/Self\ Improving\ AI\ Agent\ Workshop
-python3 -m venv .venv && source .venv/bin/activate
+python3.12 -m venv .venv && source .venv/bin/activate
 pip install -e .
 cp -n .env.example .env
-# LM Studio: Qwen on http://127.0.0.1:1234/v1
+# LM Studio: Qwen3.5-4B on http://127.0.0.1:1234/v1
+python -m parcelco.doctor
 ```
 
 Ping:
@@ -82,6 +85,12 @@ Expect **1000**.
 ### 4 — Reflect + gate on the suite
 
 `parcelco/graphs/outer.py` — same loop across many tickets; keep/revert.
+
+Use `python -m parcelco.cli improve --rounds 1 --suite demo` for this checkpoint.
+This path evaluates both splits and keeps lessons only when the gate passes.
+The dashboard's single-ticket/autonomous reflection path saves sanitized
+learn-set lessons immediately; it does not run a holdout gate for each ticket.
+Do not use that path alone as evidence of holdout improvement.
 
 ### 5 — UI + LangFuse
 

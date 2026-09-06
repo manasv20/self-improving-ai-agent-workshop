@@ -461,8 +461,8 @@
         <li>Click <strong>Run baseline</strong></li>
         <li>When done, read <strong>Part A</strong> and <strong>Part B</strong> rates — then point at <strong>Where it was</strong></li>
       </ol>
-      <div class="talk">“Cold harness on a labeled suite. Holdout exists so we can’t fake improvement by memorizing the train tickets. Full catalog is 155 tickets; we can run the core subset live.”</div>
-      <p class="kfnote">Proof recording / overnight run: <code>PARCELCO_SUITE=full</code> (100A / 55B). Longer on full.</p>
+      <div class="talk">“Cold harness on a labeled suite. Holdout exists so we can’t fake improvement by memorizing the train tickets. Full catalog is 1000 tickets; we can run the core 35 live.”</div>
+      <p class="kfnote">Proof recording / overnight run: <code>PARCELCO_SUITE=full</code> (700A / 300B). Longer on full.</p>
     </div>
   </div>
 
@@ -502,9 +502,9 @@
 
   <h3>Setup checklist</h3>
 <pre><code><span class="cm"># LM Studio: Qwen loaded on :1234</span>
-<span class="cmd">cd</span> ~/Desktop/Self\ Improving\ AI\ Agent\ Workshop
+<span class="cm"># From the checkout containing pyproject.toml; see LOCAL_SETUP.md.</span>
 <span class="cmd">source</span> .venv/bin/activate
-<span class="cm"># Live room: demo suite. Proof deck: omit --suite or use full.</span>
+<span class="cm"># Live room: demo suite. Full evaluation: explicitly use --suite full.</span>
 python -m parcelco.cli serve --suite demo</code></pre>
 <pre><code><span class="cm"># Optional .env</span>
 PARCELCO_SUITE=full   <span class="cm"># or demo</span>
@@ -583,11 +583,13 @@ LANGFUSE_HOST=https://cloud.langfuse.com</code></pre>
   </dl>
 
   <h3>Prerequisites</h3>
-<pre><code><span class="cmd">cd</span> ~/Desktop/Self\ Improving\ AI\ Agent\ Workshop
-python3 -m venv .venv &amp;&amp; <span class="cmd">source</span> .venv/bin/activate
+  <p>Install LM Studio and Qwen3.5-4B using <a href="LOCAL_SETUP.md">the local setup guide</a> first.</p>
+<pre><code><span class="cm"># From the checkout containing pyproject.toml.</span>
+python3.12 -m venv .venv &amp;&amp; <span class="cmd">source</span> .venv/bin/activate
 pip install -e .
 cp -n .env.example .env
-<span class="cm"># LM Studio: Qwen on http://127.0.0.1:1234/v1</span></code></pre>
+<span class="cm"># LM Studio: Qwen3.5-4B on http://127.0.0.1:1234/v1</span>
+python -m parcelco.doctor</code></pre>
   <p>Ping the model:</p>
 <pre><code>python -c "from parcelco.llm import chat_model; print(chat_model().invoke('Reply: pong').content[:40])"</code></pre>
 
@@ -646,7 +648,7 @@ python -c "from parcelco.data_io import load_tickets; print(len(load_tickets(Non
   <p class="lede">Langfuse is MIT open source. The workshop vendors the official compose stack under <code>docker/langfuse/</code>.</p>
 
   <h3>Start</h3>
-<pre><code><span class="cmd">cd</span> ~/Desktop/Self\ Improving\ AI\ Agent\ Workshop
+<pre><code><span class="cm"># From the checkout containing pyproject.toml.</span>
 <span class="cmd">chmod</span> +x scripts/start-langfuse.sh scripts/stop-langfuse.sh
 ./scripts/start-langfuse.sh</code></pre>
   <p>Or directly:</p>
@@ -700,7 +702,7 @@ python -m parcelco.cli serve</code></pre>
     </div>
     <div>
       <dt><span class="tag">KEY NUMBERS</span></dt>
-      <dd>Catalog — <strong>1000</strong> tickets · 700 A / 300 B<br>Demo suite — <strong>35</strong> core (20A / 15B)<br>Full suite — 100A / 55B</dd>
+      <dd>Catalog — <strong>1000</strong> tickets · 700 A / 300 B<br>Demo suite — <strong>35</strong> core (20A / 15B)<br>Full suite — 700A / 300B</dd>
     </div>
   </dl>
 

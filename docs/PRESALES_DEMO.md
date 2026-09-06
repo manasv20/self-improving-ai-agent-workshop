@@ -33,12 +33,12 @@ This is a **short show path** if buyers sit in — the primary format is still t
 ### 2) Baseline (~3–6 min on demo suite; longer on full)
 
 For a **live** room: start with `PARCELCO_SUITE=demo` (20A / 15B).  
-For a **proof** recording or overnight run: `PARCELCO_SUITE=full` (100A / 55B).
+For a **proof** recording or overnight run: `PARCELCO_SUITE=full` (700A / 300B).
 
 1. Click **Run baseline**  
 2. When done, read **Part A** and **Part B** rates — then point at **Where it was**  
 
-**Talk track:** “Cold harness on a labeled suite. Holdout exists so we can’t fake improvement by memorizing the train tickets. Full catalog is 155 tickets; we can run the core subset live.”
+**Talk track:** “Cold harness on a labeled suite. Holdout exists so we can’t fake improvement by memorizing the train tickets. Full catalog is 1000 tickets; we can run the core 35 live.”
 
 ### 3) Improve loop (~5–8 min on demo)
 
@@ -68,9 +68,9 @@ If LangFuse keys are empty, say: “Tracing hooks are wired; we turn them on wit
 
 ```bash
 # LM Studio: Qwen loaded on :1234
-cd ~/Desktop/Self\ Improving\ AI\ Agent\ Workshop
+# From the checkout containing pyproject.toml; complete LOCAL_SETUP.md first.
 source .venv/bin/activate
-# Live room: demo suite. Proof deck: omit --suite or use full.
+# Live room: demo suite. Full evaluation: explicitly use --suite full.
 python -m parcelco.cli serve --suite demo
 ```
 
