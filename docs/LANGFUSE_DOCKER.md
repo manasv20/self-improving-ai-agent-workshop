@@ -34,6 +34,15 @@ The start script creates the missing Docker `.env` from the checked-in local
 demo template. Existing environments are preserved. All exposed ports bind to
 localhost; these sample credentials are for a local workshop only.
 
+The Compose defaults set `LANGFUSE_MIGRATION_V4_WRITE_MODE=dual` and
+`LANGFUSE_MIGRATION_V4_NATIVE_OTEL_BEHAVIOUR=dual_write` so LangChain
+`ChatOpenAI` generations keep their prompt/completion payloads. The v4
+`events_only` default strips that I/O and makes traces look empty.
+
+In the Langfuse UI, open a ticket trace and expand the **ChatOpenAI**
+observation — that is the LangChain callback (`ls_integration:
+langchain_chat_model`).
+
 ## Wire ParcelCo
 
 **There is no guaranteed shared workshop login.** Create a local LangFuse project and paste its keys into the repo `.env`. Sample credentials in scripts are for local Docker only.

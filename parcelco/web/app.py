@@ -67,7 +67,6 @@ def api_knowledge():
     from parcelco.data_io import read_learnings, read_prompt, suite_info
     from parcelco.paths import FAQ_DIR, POLICY_PATH
     from parcelco import tracing
-    import os
 
     faqs = []
     for path in sorted(FAQ_DIR.glob("*.md")):
@@ -81,7 +80,13 @@ def api_knowledge():
                 {"id": "langchain", "name": "LangChain", "role": "Model I/O + RAG glue", "detail": llm_base_url()},
                 {"id": "langgraph", "name": "LangGraph", "role": "Autonomous loop: retrieve→generate→evaluate→heal→reflect", "detail": "Reflect learns from corrected learn-set runs; suite scores lift"},
                 {"id": "rag", "name": "RAG (policy + FAQ)", "role": "Frozen knowledge retrieve — not retrained", "detail": "Chroma or keyword fallback"},
-                {"id": "checklist", "name": "Python checklist", "role": "Pass/fail gate (not LLM self-grade)", "detail": "expected/*.json"},
+                {"id": "checklist", "name": "Python checklist", "role": "Hard pass/fail gate (not LLM self-grade)", "detail": "expected/*.json"},
+                {
+                    "id": "slm-judge",
+                    "name": "Eval SLM",
+                    "role": "Eval gate when PARCELCO_EVAL_MODEL is set (Python Expected = rubric)",
+                    "detail": os.getenv("PARCELCO_EVAL_MODEL") or "off — checklist-only gate",
+                },
                 {"id": "memory", "name": "Prompt + learnings.md", "role": "What Reflect updates (gated keep/revert)", "detail": "parcelco/memory/"},
                 {"id": "langfuse", "name": "LangFuse", "role": "Score store + heal workflow verify + lesson annotate", "detail": tracing.status().get("label")},
                 {"id": "data", "name": "Labeled tickets", "role": "Learn set + holdout", "detail": f"{info['catalog_improve']} learn / {info['catalog_holdout']} holdout"},
@@ -290,6 +295,7 @@ def _publish_ticket_result(ticket, result, reflected: dict | None = None) -> Non
         "passed": result.passed,
         "draft": result.draft,
         "checklist": result.checklist.model_dump(),
+        "slm_judge": getattr(result, "slm_judge", None) or {},
         "retrieved": result.retrieved,
         "steps": result.steps,
         "heal_count": result.heal_count,

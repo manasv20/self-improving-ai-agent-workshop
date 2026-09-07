@@ -8,6 +8,20 @@
   const el = (id) => document.getElementById(id);
   const contract = window.ParcelCoDashboardContract;
 
+  function customerFacingDraft(text) {
+    let out = String(text || "");
+    out = out.replace(/<think>[\s\S]*?<\/think>/gi, "");
+    out = out.replace(/<think>[\s\S]*$/gi, "");
+    return out.trim();
+  }
+
+  function showDraft(text) {
+    const box = el("llm-draft");
+    if (!box) return;
+    const visible = customerFacingDraft(text);
+    box.textContent = visible || "(empty draft)";
+  }
+
   const state = {
     tickets: [],
     selectedId: null,
@@ -365,7 +379,7 @@
         ? `forbidden: ${(a.forbidden_hits || []).join(", ")}`
         : "";
       const why = [a.details, miss, forbid].filter(Boolean).join(" · ");
-      const draft = a.draft || "";
+      const draft = customerFacingDraft(a.draft || "");
       const preview = draft.length > 120 ? `${draft.slice(0, 120)}…` : draft;
       li.innerHTML = `
         <details class="attempt-panel" ${a === last ? "open" : ""}>
@@ -652,23 +666,35 @@
     if (ev.type === "ticket_eval") {
       const willHeal = !!ev.will_heal;
       const details = (ev.attempt && ev.attempt.details) || "";
-      setNodeBody(
-        "evaluate",
-        ev.passed
-          ? `PASS — ACTION + phrases OK`
-          : willHeal
-            ? `FAIL — ${details || "will heal"}`.slice(0, 200)
-            : `FAIL final — ${details || "max heals"}`.slice(0, 200)
-      );
+      const judge = ev.slm_judge || (ev.inspector && ev.inspector.slm_judge);
+      const source = ev.eval_source || (ev.inspector && ev.inspector.eval_source) || "";
+      let evalLine = ev.passed
+        ? `PASS — ${source === "slm" ? "SLM gate" : "checklist"}`
+        : willHeal
+          ? `FAIL — ${details || "will heal"}`.slice(0, 160)
+          : `FAIL final — ${details || "max heals"}`.slice(0, 160);
+      if (judge && judge.enabled) {
+        if (judge.error) evalLine += ` · SLM error: ${judge.error}`;
+        else if (judge.passed == null) evalLine += " · SLM: no verdict";
+        else {
+          const gate = source === "slm" ? "gate" : "ref";
+          evalLine += ` · SLM ${judge.passed ? "PASS" : "FAIL"} (${gate})`;
+          if (judge.rationale) evalLine += ` · ${String(judge.rationale).slice(0, 60)}`;
+        }
+      }
+      setNodeBody("evaluate", evalLine.slice(0, 220));
       el("result-line").textContent = willHeal
         ? `${ev.ticket_id}: FAIL — healing…`
         : `${ev.ticket_id}: ${ev.passed ? "PASS" : "FAIL"}`;
       el("result-line").className = `result-line ${ev.passed ? "pass" : "fail"}`;
       if (ev.attempts) renderHealTimeline(ev.attempts, { willHeal });
       else if (ev.attempt) renderHealTimeline([ev.attempt], { willHeal });
-      if (ev.attempt && ev.attempt.draft) {
-        el("llm-draft").textContent = ev.attempt.draft;
+      if (ev.attempt && ev.attempt.draft != null) {
+        showDraft(ev.attempt.draft);
         openRailPanel("panel-draft");
+      } else if (Array.isArray(ev.attempts) && ev.attempts.length) {
+        const last = ev.attempts[ev.attempts.length - 1];
+        if (last && last.draft != null) showDraft(last.draft);
       }
       if (willHeal) {
         highlightNode("heal");
@@ -697,10 +723,14 @@
       el("inspector").textContent = JSON.stringify(ev.inspector, null, 2);
       if (ev.inspector.langfuse_url) setInspectorLink(ev.inspector.langfuse_url);
       if (ev.inspector.langfuse_evidence) renderLangfuseEvidence(ev.inspector.langfuse_evidence);
-      if (ev.inspector.draft) {
-        el("llm-draft").textContent = ev.inspector.draft;
-        setNodeBody("generate", `Draft ready (${String(ev.inspector.draft).length} chars)`);
+      if (ev.inspector.draft != null) {
+        showDraft(ev.inspector.draft);
+        const shown = customerFacingDraft(ev.inspector.draft);
+        setNodeBody("generate", shown ? `Draft ready (${shown.length} chars)` : "Draft empty");
         openRailPanel("panel-draft");
+      } else if (Array.isArray(ev.inspector.attempts) && ev.inspector.attempts.length) {
+        const last = ev.inspector.attempts[ev.inspector.attempts.length - 1];
+        if (last && last.draft != null) showDraft(last.draft);
       }
       if (ev.inspector.retrieved) {
         const docs = ev.inspector.retrieved;

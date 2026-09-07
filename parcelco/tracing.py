@@ -168,6 +168,25 @@ def score_checklist_to_langfuse(
     score_trace(trace_id, "attempt_number", float(attempt), comment)
 
 
+def score_slm_judge_to_langfuse(trace_id: str | None, judge: dict[str, Any] | None) -> None:
+    """Record optional SLM soft-judge outcome (does not replace the Python checklist)."""
+    if not trace_id or not isinstance(judge, dict) or not judge.get("enabled"):
+        return
+    if judge.get("error"):
+        score_trace(trace_id, "slm_judge_error", 0.0, str(judge.get("error"))[:900])
+        return
+    if judge.get("passed") is None:
+        return
+    rationale = str(judge.get("rationale") or "")
+    model = str(judge.get("model") or "eval-slm")
+    score_trace(
+        trace_id,
+        "slm_judge_passed",
+        1.0 if judge.get("passed") else 0.0,
+        f"model={model} · {rationale}"[:900],
+    )
+
+
 def annotate_lesson_on_trace(trace_id: str | None, lesson: str, *, kept: bool = True) -> None:
     """Record Reflect output on the same trace so learning is visible in LangFuse."""
     if not trace_id or not lesson:

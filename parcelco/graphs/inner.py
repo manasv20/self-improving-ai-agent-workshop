@@ -19,6 +19,7 @@ class InnerState(TypedDict, total=False):
     docs: list[str]
     draft: str
     checklist: dict[str, Any]
+    slm_judge: dict[str, Any]
     heal_count: int
     steps: list[str]
     learnings: str
@@ -159,21 +160,44 @@ def node_generate(state: InnerState) -> InnerState:
 
 
 def node_evaluate(state: InnerState) -> InnerState:
-    from parcelco.tracing import langfuse_enabled, remember_trace, score_checklist_to_langfuse
+    from parcelco.eval.evaluate import evaluate_draft
+    from parcelco.eval.slm_judge import eval_model_enabled
+    from parcelco.tracing import (
+        langfuse_enabled,
+        remember_trace,
+        score_checklist_to_langfuse,
+        score_slm_judge_to_langfuse,
+    )
 
     ticket = state["ticket"]
+    judge_on = eval_model_enabled()
     publish(
         {
             "type": "step",
             "node": "evaluate",
             "stack": "evaluator",
-            "stack_detail": "Deterministic checklist (not LLM self-grade)",
+            "stack_detail": (
+                "Eval SLM applying Python Expected rules (hard gate)"
+                if judge_on
+                else "Python checklist (hard gate) — set PARCELCO_EVAL_MODEL to use SLM evals"
+            ),
             "ticket_id": ticket["id"],
         }
     )
     expected = load_expected(ticket["id"])
-    result = score_draft(state.get("draft") or "", expected)
+    bundle = evaluate_draft(
+        state.get("draft") or "",
+        expected,
+        trace_id=state.get("trace_id") or None,
+    )
+    result = bundle["checklist"]
+    slm_judge = bundle["slm_judge"]
+    gate_passed = bool(bundle["passed"])
+    eval_source = bundle["eval_source"]
+    gate_details = bundle["details"]
     steps = list(state.get("steps") or []) + ["evaluate"]
+    if slm_judge.get("enabled"):
+        steps.append("slm_judge")
     trace_id = state.get("trace_id") or None
     lf_url = state.get("langfuse_url") or None
     attempts = list(state.get("attempts") or [])
@@ -182,13 +206,16 @@ def node_evaluate(state: InnerState) -> InnerState:
     attempt = {
         "attempt": attempt_no,
         "heal_count_before": heal_before,
-        "passed": result.passed,
+        "passed": gate_passed,
+        "python_passed": result.passed,
+        "eval_source": eval_source,
         "detected_action": result.detected_action,
         "expected_action": expected.action,
         "missing": result.missing,
         "forbidden_hits": result.forbidden_hits,
-        "details": result.details,
+        "details": gate_details,
         "draft": state.get("draft") or "",
+        "slm_judge": slm_judge,
     }
     attempts.append(attempt)
 
@@ -203,25 +230,30 @@ def node_evaluate(state: InnerState) -> InnerState:
             detected_action=result.detected_action,
             expected_action=expected.action,
         )
+        score_slm_judge_to_langfuse(trace_id, slm_judge)
         lf_url = remember_trace(
             ticket_id=ticket["id"],
             trace_id=trace_id,
-            passed=result.passed,
-            detail=result.details,
+            passed=gate_passed,
+            detail=gate_details,
         ) or lf_url
 
-    will_heal = (not result.passed) and heal_before < _max_heal()
+    will_heal = (not gate_passed) and heal_before < _max_heal()
+    source_bit = f" · gate={eval_source}"
+    if slm_judge.get("enabled") and slm_judge.get("error"):
+        source_bit += f" · SLM error: {slm_judge.get('error')}"
     publish(
         {
             "type": "ticket_eval",
             "ticket_id": ticket["id"],
-            "passed": result.passed,
+            "passed": gate_passed,
             "node": "evaluate",
             "stack": "langfuse" if langfuse_enabled() else "evaluator",
             "stack_detail": (
-                f"Attempt {attempt_no}: {'PASS' if result.passed else 'FAIL'}"
-                + (f" · will heal ({result.details})" if will_heal else "")
-                + (f" · {result.details}" if (not result.passed and not will_heal) else "")
+                f"Attempt {attempt_no}: {'PASS' if gate_passed else 'FAIL'}"
+                + source_bit
+                + (f" · will heal ({gate_details})" if will_heal else "")
+                + (f" · {gate_details}" if (not gate_passed and not will_heal) else "")
                 + (" · scored → LangFuse" if trace_id else "")
             )[:400],
             "langfuse_on": langfuse_enabled(),
@@ -230,10 +262,15 @@ def node_evaluate(state: InnerState) -> InnerState:
             "attempt": attempt,
             "attempts": attempts,
             "will_heal": will_heal,
+            "eval_source": eval_source,
+            "slm_judge": slm_judge,
             "inspector": {
                 "ticket_id": ticket["id"],
                 "draft": state.get("draft"),
                 "checklist": result.model_dump(),
+                "slm_judge": slm_judge,
+                "eval_source": eval_source,
+                "gate_passed": gate_passed,
                 "retrieved": state.get("docs") or [],
                 "langfuse_url": lf_url,
                 "trace_id": trace_id,
@@ -242,7 +279,11 @@ def node_evaluate(state: InnerState) -> InnerState:
                 "stack_path": [
                     "LangChain retrieve",
                     "LangChain generate (Qwen)",
-                    "LangGraph evaluate",
+                    (
+                        "Eval SLM + Python Expected rules"
+                        if judge_on
+                        else "Python checklist (hard gate)"
+                    ),
                     "LangFuse scores" if langfuse_enabled() else "LangFuse (off)",
                 ],
             },
@@ -251,7 +292,8 @@ def node_evaluate(state: InnerState) -> InnerState:
     return {
         **state,
         "checklist": result.model_dump(),
-        "passed": result.passed,
+        "slm_judge": slm_judge,
+        "passed": gate_passed,
         "steps": steps,
         "langfuse_url": lf_url or "",
         "attempts": attempts,
@@ -393,5 +435,6 @@ def run_ticket(ticket: Ticket, *, prompt: str | None = None, learnings: str | No
         attempts=list(final.get("attempts") or []),
         trace_id=trace_id,
         langfuse_evidence=evidence,
+        slm_judge=dict(final.get("slm_judge") or {}),
     )
     return result

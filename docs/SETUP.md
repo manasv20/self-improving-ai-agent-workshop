@@ -154,6 +154,40 @@ python -m pip install -c requirements-lock.txt -e ".[tracing]"
 
 See [optional Langfuse setup](LANGFUSE_DOCKER.md) only after the main route works.
 
+## Optional: tiny SLM as the eval layer
+
+When `PARCELCO_EVAL_MODEL` is set, evaluation is **SLM-gated**: the model applies
+the same `expected/*.json` rules (action, must-include, must-not). Heal/PASS follow
+that verdict. The Python checklist still runs for evidence and concrete heal
+briefs, and is the fallback if the SLM errors or returns unparseable JSON.
+
+Leave `PARCELCO_EVAL_MODEL` empty for checklist-only evaluation.
+
+```bash
+# ~1 GB — Q4_K_M into LM Studio's models folder
+python - <<'PY'
+from pathlib import Path
+from huggingface_hub import hf_hub_download
+dest = Path.home() / ".lmstudio/models/lmstudio-community/Qwen2.5-1.5B-Instruct-GGUF"
+print(hf_hub_download(
+    repo_id="lmstudio-community/Qwen2.5-1.5B-Instruct-GGUF",
+    filename="Qwen2.5-1.5B-Instruct-Q4_K_M.gguf",
+    local_dir=str(dest),
+))
+PY
+lms load qwen2.5-1.5b-instruct --identifier qwen2.5-1.5b-instruct
+```
+
+In the repository `.env`:
+
+```dotenv
+PARCELCO_EVAL_MODEL=qwen2.5-1.5b-instruct
+PARCELCO_EVAL_REASONING_EFFORT=none
+```
+
+Leave `PARCELCO_EVAL_MODEL` empty to keep checklist-only evaluation. Restart
+`python -m parcelco.cli serve` after changing it.
+
 ## 4. Run tests and the readiness check
 
 The unit tests use local fixtures and do not require LM Studio. The doctor checks the configured chat model, tries embeddings and Chroma, confirms the keyword fallback when needed, and verifies the 47-ticket demo split.

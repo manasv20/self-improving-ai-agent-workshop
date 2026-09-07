@@ -443,7 +443,8 @@ body.demo-shell.show-docs .history-card {
   min-width: 0;
   min-height: 0;
   background: var(--canvas);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 .toolbar-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
 .loop-caption {
@@ -1085,13 +1086,13 @@ tr.row-reverted { opacity: 0.7; }
 .strip-notes { color: var(--muted); font-size: 0.7rem; }
 .live-stage {
   flex: 1 1 auto;
-  min-height: 120px;
+  min-height: 240px;
   display: grid;
   grid-template-columns: 1fr 1.25fr 1fr;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem 0.55rem;
   border-top: 1px solid var(--line);
-  overflow: hidden;
+  overflow: auto;
 }
 .stage-col {
   min-width: 0;
@@ -1106,6 +1107,7 @@ tr.row-reverted { opacity: 0.7; }
 }
 .stage-col h3 {
   margin: 0 0 0.3rem;
+  flex: 0 0 auto;
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -1119,17 +1121,25 @@ tr.row-reverted { opacity: 0.7; }
 .stage-col .heal-timeline,
 .stage-col .llm-draft {
   flex: 1 1 auto;
-  min-height: 0;
+  /* Keep the drafted reply visible even when the stage is short. */
+  min-height: 7rem;
   max-height: none;
   overflow: auto;
   margin: 0;
 }
 .stage-col .llm-draft {
-  font-size: 0.7rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
   white-space: pre-wrap;
-  background: transparent;
-  border: 0;
-  padding: 0;
+  word-break: break-word;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+  border-radius: 8px;
+  padding: 0.55rem 0.6rem;
+}
+.stage-col .lf-evidence {
+  flex: 0 0 auto;
 }
 .stage-draft .result-line {
   margin: 0;
