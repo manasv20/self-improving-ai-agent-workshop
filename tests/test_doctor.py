@@ -60,9 +60,8 @@ class DoctorTests(unittest.TestCase):
         self.assertIn("PASS Chat model", output)
         self.assertIn("PASS Embeddings", output)
         self.assertIn("PASS Chroma", output)
-        self.assertIn(
-            "Ready for the workshop. Chat and vector retrieval are working.", output
-        )
+        self.assertIn("Chat and vector retrieval are working.", output)
+        self.assertEqual(output.splitlines()[-1], "Ready for the workshop.")
 
     def test_chat_connection_failure_is_actionable_and_fatal(self):
         local_probes = probes(
@@ -116,11 +115,8 @@ class DoctorTests(unittest.TestCase):
         self.assertIn("PARCELCO_EMBED_MODEL", output)
         self.assertIn("WARN Chroma: skipped", output)
         self.assertIn("PASS Keyword fallback: confirmed", output)
-        self.assertIn(
-            "Ready for the workshop. Chat is working; keyword retrieval fallback is "
-            "confirmed.",
-            output,
-        )
+        self.assertIn("Chat is working; keyword retrieval fallback is confirmed.", output)
+        self.assertEqual(output.splitlines()[-1], "Ready for the workshop.")
         vector_probe.assert_not_called()
 
     def test_strict_embedding_failure_is_fatal_even_with_keyword_fallback(self):

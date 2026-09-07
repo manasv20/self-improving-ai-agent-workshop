@@ -73,7 +73,7 @@ class DoctorReport:
                 if self.retrieval_mode == "vector"
                 else "Chat is working; keyword retrieval fallback is confirmed."
             )
-            lines.append(f"Ready for the workshop. {mode}")
+            lines.extend([mode, "Ready for the workshop."])
         else:
             lines.append(
                 "Not ready: fix the FAIL items above, then run the doctor again."
