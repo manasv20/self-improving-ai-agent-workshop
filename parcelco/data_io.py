@@ -8,7 +8,7 @@ from parcelco.paths import EXPECTED_DIR, LEARNINGS_PATH, PROMPT_PATH, TICKETS_DI
 
 
 def suite_mode() -> str:
-    """demo = core 35 tickets (fast live); full = all ~1000 (before→after proof)."""
+    """demo = 47 core tickets (fast live); full = all 1000 (before→after proof)."""
     mode = (os.getenv("PARCELCO_SUITE", "full") or "full").strip().lower()
     return "demo" if mode in {"demo", "core", "live"} else "full"
 

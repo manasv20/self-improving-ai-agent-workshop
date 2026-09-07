@@ -79,7 +79,7 @@ def api_knowledge():
             "stack": [
                 {"id": "qwen", "name": "Qwen 3.5 4B (LM Studio)", "role": "Writes the reply", "detail": model_name()},
                 {"id": "langchain", "name": "LangChain", "role": "Model I/O + RAG glue", "detail": llm_base_url()},
-                {"id": "langgraph", "name": "LangGraph", "role": "Autonomous loop: retrieve→generate→evaluate→heal→reflect", "detail": "Reflect on every learn-set ticket; suite scores lift"},
+                {"id": "langgraph", "name": "LangGraph", "role": "Autonomous loop: retrieve→generate→evaluate→heal→reflect", "detail": "Reflect learns from corrected learn-set runs; suite scores lift"},
                 {"id": "rag", "name": "RAG (policy + FAQ)", "role": "Frozen knowledge retrieve — not retrained", "detail": "Chroma or keyword fallback"},
                 {"id": "checklist", "name": "Python checklist", "role": "Pass/fail gate (not LLM self-grade)", "detail": "expected/*.json"},
                 {"id": "memory", "name": "Prompt + learnings.md", "role": "What Reflect updates (gated keep/revert)", "detail": "parcelco/memory/"},
@@ -167,7 +167,7 @@ def api_events():
 
 @app.post("/api/suite")
 def api_set_suite():
-    """Switch active catalog: demo (core 35) or full (~1000)."""
+    """Switch active catalog: demo (47 core tickets) or full (1000 tickets)."""
     data = request.get_json(silent=True) or {}
     mode = (data.get("mode") or "").strip().lower()
     if mode not in {"demo", "full"}:
@@ -241,27 +241,44 @@ def api_ticket_detail(ticket_id: str):
     return jsonify({"ticket": t.model_dump(), "expected": exp})
 
 
-def _publish_ticket_result(ticket, result, reflected: dict | None = None) -> None:
-    from parcelco.tracing import list_recent_traces, trace_url
+def _ticket_result_detail(result, reflected: dict, *, trace_available: bool) -> str:
+    """Describe this run only; never imply a memory write or trace that did not happen."""
+    reason = reflected.get("reason")
+    detail = f"Ticket {result.ticket_id}: {'PASS' if result.passed else 'FAIL'} after {result.heal_count} heal(s)"
+    if reason == "learned":
+        detail += " · Reflect wrote a lesson to learnings.md"
+    elif reason == "holdout":
+        detail += " · holdout: Reflect skipped; memory unchanged"
+    elif reason == "clean_pass":
+        detail += " · clean PASS: nothing to learn; memory unchanged"
+    elif reason == "blocked":
+        detail += " · Reflect lesson blocked by safety filter; memory unchanged"
+    elif reason == "rejected":
+        detail += " · Reflect produced no safe lesson; memory unchanged"
+    else:
+        detail += " · memory unchanged"
 
-    lf_url = trace_url(result.trace_id) if result.trace_id else None
-    recent = list_recent_traces(1)
-    if not lf_url and recent:
-        lf_url = recent[0].get("url")
+    evidence = result.langfuse_evidence or {}
+    if not evidence.get("enabled"):
+        detail += " · LangFuse off: no trace written"
+    elif not result.trace_id:
+        detail += " · LangFuse on, but no trace was captured"
+    elif evidence.get("error"):
+        detail += " · LangFuse verification unavailable"
+    elif trace_available:
+        detail += " · LangFuse trace available"
+    return detail
+
+
+def _publish_ticket_result(ticket, result, reflected: dict | None = None) -> None:
+    from parcelco.tracing import trace_url
+
     reflected = reflected or {}
     learned = bool(reflected.get("reflected"))
-    detail = (
-        f"Ticket {result.ticket_id}: {'PASS' if result.passed else 'FAIL'} after {result.heal_count} heal(s)"
-    )
-    if learned:
-        detail += " · Reflect wrote a lesson (autonomous)"
-    elif getattr(ticket, "split", None) == "holdout":
-        detail += " · holdout (no Reflect)"
-    elif result.passed and not result.heal_count:
-        detail += " · clean PASS (nothing to learn)"
-    if lf_url:
-        detail += " · LangFuse trace ready"
     ev = result.langfuse_evidence or {}
+    trace_available = bool(result.trace_id and ev.get("enabled") and not ev.get("error"))
+    lf_url = (ev.get("url") or trace_url(result.trace_id)) if trace_available else None
+    detail = _ticket_result_detail(result, reflected, trace_available=trace_available)
     if ev.get("verdict"):
         detail += f" · LF {ev.get('verdict')}"
         if ev.get("generation_count") is not None:
@@ -294,7 +311,9 @@ def _publish_ticket_result(ticket, result, reflected: dict | None = None) -> Non
             "ticket_id": result.ticket_id,
             "node": "reflect" if learned else "idle",
             "passed": result.passed,
-            "langfuse_on": bool(lf_url),
+            "reflect_reason": reflected.get("reason"),
+            "langfuse_on": bool(ev.get("enabled")),
+            "trace_available": trace_available,
             "langfuse_url": lf_url,
             "trace_id": result.trace_id,
             "inspector": inspector,
@@ -308,15 +327,21 @@ def _publish_ticket_result(ticket, result, reflected: dict | None = None) -> Non
 def api_run_ticket():
     """Run a selected ticket through the inner graph + autonomous Reflect."""
     data = request.get_json(silent=True) or {}
-    ticket_id = (data.get("ticket_id") or "A01").strip()
+    ticket_id = (data.get("ticket_id") or "").strip()
+    if not ticket_id:
+        return jsonify({"ok": False, "error": "ticket_id is required"}), 400
+
+    from parcelco.data_io import load_tickets
+
+    tickets = {t.id: t for t in load_tickets(None)}
+    ticket = tickets.get(ticket_id)
+    if ticket is None:
+        return jsonify({"ok": False, "error": f"ticket {ticket_id} is not in the active suite"}), 404
 
     def job():
-        from parcelco.data_io import load_tickets
         from parcelco.graphs.inner import run_ticket
         from parcelco.graphs.outer import reflect_after_ticket
 
-        tickets = {t.id: t for t in load_tickets(None)}
-        ticket = tickets.get(ticket_id) or next(iter(tickets.values()))
         publish(
             {
                 "type": "status",
