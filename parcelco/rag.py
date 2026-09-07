@@ -48,9 +48,13 @@ def _keyword_retrieve(query: str, k: int = 4) -> list[str]:
     ]
 
 
-def _chroma_retrieve(query: str, k: int = 4) -> list[str] | None:
+def _chroma_retrieve(
+    query: str, k: int = 4, *, raise_errors: bool = False
+) -> list[str] | None:
+    """Retrieve with Chroma, optionally exposing errors to diagnostic callers."""
     try:
         import chromadb
+
         from parcelco.llm import embed_model
 
         CHROMA_DIR.mkdir(parents=True, exist_ok=True)
@@ -62,9 +66,9 @@ def _chroma_retrieve(query: str, k: int = 4) -> list[str] | None:
             docs = _load_docs()
             texts = [body for _, body in docs]
             ids = [name for name, _ in docs]
-            vectors = emb.embed_documents([
-                _embedding_text(text, query=False, model=emb.model) for text in texts
-            ])
+            vectors = emb.embed_documents(
+                [_embedding_text(text, query=False, model=emb.model) for text in texts]
+            )
             collection.add(ids=ids, documents=texts, embeddings=vectors)
 
         qvec = emb.embed_query(_embedding_text(query, query=True, model=emb.model))
@@ -73,6 +77,8 @@ def _chroma_retrieve(query: str, k: int = 4) -> list[str] | None:
         ids = (result.get("ids") or [[]])[0]
         return [f"[{i}]\n{d}" for i, d in zip(ids, docs)]
     except Exception:
+        if raise_errors:
+            raise
         return None
 
 
@@ -81,6 +87,7 @@ def rebuild_index() -> str:
     """Force rebuild chroma index; returns status string."""
     try:
         import chromadb
+
         from parcelco.llm import embed_model
 
         if CHROMA_DIR.exists():
@@ -94,9 +101,9 @@ def rebuild_index() -> str:
         docs = _load_docs()
         texts = [body for _, body in docs]
         ids = [name for name, _ in docs]
-        vectors = emb.embed_documents([
-            _embedding_text(text, query=False, model=emb.model) for text in texts
-        ])
+        vectors = emb.embed_documents(
+            [_embedding_text(text, query=False, model=emb.model) for text in texts]
+        )
         collection.add(ids=ids, documents=texts, embeddings=vectors)
         return f"indexed {len(docs)} docs in chroma"
     except Exception as e:
