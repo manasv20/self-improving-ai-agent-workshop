@@ -22,9 +22,11 @@ This creates application secrets and leaves the Compose file's other local-demo 
 
 ```bash
 cd docker/langfuse
-cp -n .env.example .env
+if [[ ! -f .env ]]; then cp .env.example .env; fi
 docker compose --env-file .env up -d
 ```
+
+On Windows PowerShell, use `if (-not (Test-Path .env)) { Copy-Item .env.example .env }` before the same `docker compose` command.
 
 Open <http://localhost:3000> after the services are healthy. Create a local account and project, then create project API keys. If an existing Docker `.env` supplies `LANGFUSE_INIT_*` values, use the account/project it initializes instead.
 

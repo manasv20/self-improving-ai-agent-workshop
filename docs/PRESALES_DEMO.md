@@ -4,7 +4,7 @@ For guests who are watching rather than working through exercises. Use [the full
 
 ## Prepare
 
-Follow [Setup](SETUP.md) (model load: [LOCAL_SETUP.md](LOCAL_SETUP.md)), rehearse your model, and open the visual guide next to the dashboard:
+Follow the authoritative [Setup](SETUP.md), rehearse your model, and open the visual guide next to the dashboard:
 
 ```bash
 python -m parcelco.cli serve --suite demo
@@ -24,9 +24,9 @@ The demo contains **47 tickets: 28 learn and 19 holdout**. The full catalog cont
 
 If a model reply passes immediately, use the guide's labeled, constructed retry example. If using recorded batch results, name the suite, model, retry settings, and memory starting point. Do not present the guide's invented graph values as measured results.
 
-## If there is time for a live batch
+## If a facilitator has timed the live batch
 
-Expand **Optional · suite proof (Score / Learn / Reset)**, click **Score suite**, then set rounds to **1** and click **Learn + keep/revert**. It runs its own starting baseline and then evaluates the proposed memory; allow enough time for both passes.
+Keep this facilitator-only unless rehearsal showed it fits the agenda with margin. Expand **Optional · suite proof (Score / Learn / Reset)**, click **Score suite**, then set rounds to **1** and click **Learn + keep/revert**. It runs its own starting baseline and then evaluates the proposed memory; allow enough time for both passes.
 
 Read **kept/reverted** beside the scores. A rejected candidate stays in history for inspection but is not the accepted memory at normal completion. By default, A must gain at least five percentage points and B may drop no more than five points relative to the last accepted state.
 

@@ -1,6 +1,6 @@
 # Workshop: try, inspect, explain
 
-[Visual guide](index.html#exercises) · [Setup](SETUP.md) · [Facilitator notes](SPEAKER_NOTES.md)
+[Visual guide](index.html#exercises) · [Prework](PREWORK.md) · [Setup](SETUP.md) · [Facilitator notes](SPEAKER_NOTES.md)
 
 By the end, you should be able to explain why a reply passed or failed, describe a retry, and tell the difference between **saving a lesson** and **testing whether it helps**.
 
@@ -16,14 +16,7 @@ Work in pairs if you like: one person drives, the other predicts what will happe
 
 **Goal:** separate the policy decision from the model's wording.
 
-If you will run the live agent, complete [LOCAL_SETUP.md](LOCAL_SETUP.md) first (Qwen3.5-4B + embeddings in LM Studio), then:
-
-```bash
-python3.12 -m venv .venv && source .venv/bin/activate
-pip install -e .
-cp -n .env.example .env
-python -m parcelco.doctor
-```
+If you will run the live agent, complete the [prework checklist](PREWORK.md) first. The [setup guide](SETUP.md) is the authoritative source for macOS/Linux and Windows commands.
 
 Read [ParcelCo's policy](../parcelco/data/policy.md). Choose an action for each ticket before looking at its expected label:
 
@@ -60,22 +53,11 @@ Reply B: I'm sorry, but this order is outside our 30-day refund window.
 ACTION: deny
 ```
 
-Predict which one passes. Then run from the repo folder in your activated environment:
+Predict which one passes. Then run this same command in macOS/Linux Bash or Windows PowerShell from the repo folder with the environment activated:
 
-```bash
-python - <<'PY'
-from parcelco.data_io import load_expected
-from parcelco.eval.checklist import score_draft
-
-expected = load_expected('A02')
-for phrase in ['refund window', '30-day refund window']:
-    draft = f"I'm sorry, but this order is outside our {phrase}.\nACTION: deny"
-    result = score_draft(draft, expected)
-    print(result.passed, result.missing, result.detected_action)
-PY
+```text
+python -c 'from parcelco.data_io import load_expected; from parcelco.eval.checklist import score_draft; expected=load_expected("A02"); drafts=[f"This order is outside our {phrase}.\nACTION: deny" for phrase in ("refund window", "30-day refund window")]; [print(result.passed, result.missing, result.detected_action) for result in (score_draft(draft, expected) for draft in drafts)]'
 ```
-
-Windows users can paste the Python inside the block into a temporary `.py` file and run it with `python filename.py`.
 
 **Expected output:**
 
@@ -104,7 +86,7 @@ A02 requires the literal substring `30-day` and the action `deny`. `30 days` is 
 1. Run A02 or A03 in the dashboard. Model output varies; neither is guaranteed to fail.
 2. If it retries, open **Heal trail**. Compare the missing phrases, detected action, and next reply.
 3. Read the **Reflect lesson** and **Memory** panels. Did this run save a lesson, skip reflection, or reject an empty/filtered lesson?
-4. Switch to **Holdout** and run one ticket. Reflection should skip writing a lesson for that ticket.
+4. Filter **Holdout**, select **B01**, and run it. Reflection should skip writing a lesson for that ticket.
 
 **If every reply passes first time:** use the deliberately incomplete A02 reply in exercise 2. Describe the repair you would send: “Keep `ACTION: deny`; include `30-day` in the reply.” The guide's clickable walkthrough shows a constructed retry example. Do not claim it is a captured model run.
 
@@ -145,9 +127,9 @@ Use fractions when calculating; rounded dashboard percentages can hide threshold
 
 </details>
 
-### Optional: measure your own run
+### Facilitator-only unless timed: measure a live batch
 
-Before a fresh comparison, back up any memory/history you want and use the [reset instructions](SETUP.md#starting-fresh-for-a-rehearsal). Keep model, suite, memory starting point, and heal settings consistent. Avoid single-ticket runs during the comparison because they can change memory.
+Participants should use the offline gate exercise above. A facilitator may show the batch only after timing it during rehearsal and reserving enough session time. Before a fresh comparison, back up any memory/history you want and use the [reset instructions](SETUP.md#start-fresh-for-a-rehearsal). Keep model, suite, memory starting point, and heal settings consistent. Avoid single-ticket runs during the comparison because they can change memory.
 
 Open **Optional · suite proof (Score / Learn / Reset)**:
 
@@ -171,21 +153,14 @@ python -m parcelco.cli improve --suite demo --rounds 1
 
 ## Verify the dataset · optional code exercise
 
-```bash
-python - <<'PY'
-import os
-from parcelco.data_io import suite_info
-for mode in ('demo', 'full'):
-    os.environ['PARCELCO_SUITE'] = mode
-    info = suite_info()
-    print(mode, info['active_improve'], info['active_holdout'], info['active_total'])
-PY
+```text
+python -c "import os; from parcelco.data_io import suite_info; os.environ['PARCELCO_SUITE']='demo'; print('demo', suite_info()['active_improve'], suite_info()['active_holdout'], suite_info()['active_total']); os.environ['PARCELCO_SUITE']='full'; print('full', suite_info()['active_improve'], suite_info()['active_holdout'], suite_info()['active_total'])"
 ```
 
-Expected: `demo 28 19 47`, then `full 700 300 1000`. The dataset expansion script rewrites tickets and labels; it is a maintainer tool, not a setup step.
+Expected: `demo 28 19 47`, then `full 700 300 1000`. The dataset expansion script is a maintainer tool, not a setup step.
 
 ## Before you leave
 
 Explain to your partner: what changed, what stayed fixed, how the evaluator works, and what the holdout score does **not** establish. Choose one improvement you would investigate next: phrase coverage, separate first-attempt scores, better-scoped lessons, or an untouched test set.
 
-For the code map of each loop step, see [IMPLEMENT_FOR_QWEN.md](../IMPLEMENT_FOR_QWEN.md). Use `python -m parcelco.cli improve --rounds 1 --suite demo` only when you want the batch keep/revert gate (not required for every exercise).
+Use `python -m parcelco.cli improve --rounds 1 --suite demo` only for a facilitator-run batch keep/revert demonstration that has already been timed; it is not a participant setup or required exercise.
