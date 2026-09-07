@@ -5,17 +5,21 @@ description = "Self-improving ParcelCo support agent workshop (LangGraph + LangF
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-  "flask>=3.0",
-  "python-dotenv>=1.0",
-  "pydantic>=2.0",
-  "langchain>=0.3",
-  "langchain-openai>=0.2",
-  "langchain-community>=0.3",
-  "langgraph>=0.2",
-  "langfuse>=2.0",
-  "chromadb>=0.5",
-  "tiktoken>=0.7",
+    "flask>=3.1,<4",
+    "python-dotenv>=1,<2",
+    "pydantic>=2.12,<3",
+    "langchain>=1,<2",
+    "langchain-core>=1.6,<2",
+    "langchain-openai>=1.6,<2",
+    "langgraph>=1.2,<2",
+    "langsmith>=0.3,<1",
+    "chromadb>=1.5,<2",
 ]
+
+[project.optional-dependencies]
+# The app imports Langfuse lazily and runs without it when tracing is disabled.
+tracing = ["langfuse>=4.15,<5"]
+test = ["pytest>=8,<10"]
 
 [project.scripts]
 parcelco = "parcelco.cli:main"
