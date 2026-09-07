@@ -69,11 +69,11 @@ class DoctorReport:
         lines = [item.render() for item in self.diagnostics]
         if self.ready:
             mode = (
-                "chat and vector retrieval are working"
+                "Chat and vector retrieval are working."
                 if self.retrieval_mode == "vector"
-                else "chat is working; keyword retrieval fallback is confirmed"
+                else "Chat is working; keyword retrieval fallback is confirmed."
             )
-            lines.append(f"Ready: {mode}.")
+            lines.append(f"Ready for the workshop. {mode}")
         else:
             lines.append(
                 "Not ready: fix the FAIL items above, then run the doctor again."
