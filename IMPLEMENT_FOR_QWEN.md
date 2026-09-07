@@ -2,7 +2,7 @@
 
 The original filename is kept for existing links. The workshop is implemented; this is a map of the reference solution, not a list of unfinished modules.
 
-Start with [the visual guide](docs/index.html), [setup](docs/SETUP.md), [local model setup](docs/LOCAL_SETUP.md), and [exercises](docs/WORKSHOP.md). The repo's scope is a support-agent workflow with frozen model weights. Fine-tuning is not implemented.
+For participant instructions, use [the setup guide](docs/SETUP.md) and [exercises](docs/WORKSHOP.md). This maintainer map covers a support-agent workflow with frozen model weights; fine-tuning is not implemented.
 
 **Project root:** the checkout directory containing `pyproject.toml`.
 
@@ -68,7 +68,7 @@ python -m http.server 8000 --bind 127.0.0.1 --directory docs
 
 Open the guide at <http://127.0.0.1:8000>. Check desktop and narrow screens, keyboard focus, the walkthrough, graph controls, exercise answers, copy buttons, presentation mode, and print preview. Teaching numbers must be explicitly labeled as examples, not run results. Keep the guide usable without network assets or JavaScript for its core reading content.
 
-Read [Setup](docs/SETUP.md) and [local setup](docs/LOCAL_SETUP.md) for live model checks. Default model: **Qwen3.5-4B** via LM Studio. Tests use local fixtures/mocks and do not establish model quality. A kept round or a visible heal is not required for a documentation PR to pass validation.
+Read [Setup](docs/SETUP.md) for live model checks. Default model: **Qwen3.5-4B** via LM Studio. Tests use local fixtures/mocks and do not establish model quality. A kept round or a visible heal is not required for a documentation PR to pass validation.
 
 | Role | Piece |
 |---|---|
