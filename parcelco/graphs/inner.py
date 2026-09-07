@@ -75,18 +75,27 @@ def node_generate(state: InnerState) -> InnerState:
     docs = "\n\n---\n\n".join(state.get("docs") or [])
     heal_hint = ""
     checklist = state.get("checklist") or {}
+    slm_judge = state.get("slm_judge") or {}
     heal_n = int(state.get("heal_count") or 0)
-    if heal_n > 0 and checklist:
+    if heal_n > 0 and (checklist or slm_judge):
         expected_action = None
+        allowed = None
         try:
-            expected_action = load_expected(ticket["id"]).action
+            exp = load_expected(ticket["id"])
+            expected_action = exp.action
+            from parcelco.eval.checklist import allowed_actions as _allowed
+
+            allowed = _allowed(exp)
         except Exception:
             expected_action = None
+            allowed = None
         heal_hint = build_heal_repair_brief(
             checklist=checklist,
             prior_draft=state.get("draft") or "",
             expected_action=expected_action,
             heal_n=heal_n,
+            slm_judge=slm_judge,
+            allowed_actions=allowed,
         )
         publish(
             {
@@ -177,9 +186,9 @@ def node_evaluate(state: InnerState) -> InnerState:
             "node": "evaluate",
             "stack": "evaluator",
             "stack_detail": (
-                "Eval SLM applying Python Expected rules (hard gate)"
+                "Python checklist gate + SLM assist (Expected rules → LangFuse)"
                 if judge_on
-                else "Python checklist (hard gate) — set PARCELCO_EVAL_MODEL to use SLM evals"
+                else "Python checklist (hard gate) — set PARCELCO_EVAL_MODEL for SLM assist"
             ),
             "ticket_id": ticket["id"],
         }
@@ -195,6 +204,7 @@ def node_evaluate(state: InnerState) -> InnerState:
     gate_passed = bool(bundle["passed"])
     eval_source = bundle["eval_source"]
     gate_details = bundle["details"]
+    soft_heal = bool(bundle.get("soft_heal"))
     steps = list(state.get("steps") or []) + ["evaluate"]
     if slm_judge.get("enabled"):
         steps.append("slm_judge")
@@ -209,6 +219,7 @@ def node_evaluate(state: InnerState) -> InnerState:
         "passed": gate_passed,
         "python_passed": result.passed,
         "eval_source": eval_source,
+        "soft_heal": soft_heal,
         "detected_action": result.detected_action,
         "expected_action": expected.action,
         "missing": result.missing,
@@ -263,6 +274,7 @@ def node_evaluate(state: InnerState) -> InnerState:
             "attempts": attempts,
             "will_heal": will_heal,
             "eval_source": eval_source,
+            "soft_heal": soft_heal,
             "slm_judge": slm_judge,
             "inspector": {
                 "ticket_id": ticket["id"],
@@ -270,6 +282,7 @@ def node_evaluate(state: InnerState) -> InnerState:
                 "checklist": result.model_dump(),
                 "slm_judge": slm_judge,
                 "eval_source": eval_source,
+                "soft_heal": soft_heal,
                 "gate_passed": gate_passed,
                 "retrieved": state.get("docs") or [],
                 "langfuse_url": lf_url,
@@ -280,7 +293,7 @@ def node_evaluate(state: InnerState) -> InnerState:
                     "LangChain retrieve",
                     "LangChain generate (Qwen)",
                     (
-                        "Eval SLM + Python Expected rules"
+                        "Python checklist gate + SLM assist"
                         if judge_on
                         else "Python checklist (hard gate)"
                     ),
@@ -306,15 +319,23 @@ def node_heal(state: InnerState) -> InnerState:
     heal_n = int(state.get("heal_count") or 0) + 1
     detail = checklist.get("details") or "checklist failed"
     expected_action = None
+    allowed = None
     try:
-        expected_action = load_expected(ticket["id"]).action
+        exp = load_expected(ticket["id"])
+        expected_action = exp.action
+        from parcelco.eval.checklist import allowed_actions as _allowed
+
+        allowed = _allowed(exp)
     except Exception:
         expected_action = None
+        allowed = None
     repair = build_heal_repair_brief(
         checklist=checklist,
         prior_draft=state.get("draft") or "",
         expected_action=expected_action,
         heal_n=heal_n,
+        slm_judge=state.get("slm_judge") or {},
+        allowed_actions=allowed,
     )
     missing = checklist.get("missing") or []
     forbidden = checklist.get("forbidden_hits") or []

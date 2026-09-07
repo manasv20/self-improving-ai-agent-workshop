@@ -1,16 +1,29 @@
-"""Unified evaluation: Python Expected rules + optional SLM gate.
+"""Unified evaluation: Python Expected hard gate + advisory SLM.
 
-When ``PARCELCO_EVAL_MODEL`` is set, the eval SLM applies those rules and its
-verdict drives heal/PASS. The deterministic checklist always runs for evidence
-and concrete heal briefs; it is the gate only when the SLM is off or errors.
+Modes (``PARCELCO_EVAL_MODE``):
+- ``assist`` (default): Python checklist is the heal/PASS gate. The SLM still runs
+  as a scored second opinion (Langfuse + Reflect), but does **not** force heals or
+  override ACTION — durable improvement comes from Reflect → learnings.md.
+- ``gate``: SLM overall verdict is the heal/PASS gate (Python fallback on judge error).
+  Heal phrase lists always come from Python Expected.
 """
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from parcelco.eval.checklist import score_draft
 from parcelco.eval.slm_judge import eval_model_enabled, judge_draft
-from parcelco.models import ChecklistResult, Expected
+from parcelco.models import Expected
+
+
+def eval_mode() -> str:
+    raw = (os.getenv("PARCELCO_EVAL_MODE") or "").strip().lower()
+    if raw in {"assist", "gate", "off"}:
+        return raw
+    if eval_model_enabled():
+        return "assist"
+    return "off"
 
 
 def evaluate_draft(
@@ -21,12 +34,16 @@ def evaluate_draft(
 ) -> dict[str, Any]:
     """Return checklist + slm_judge + the gate used for heal."""
     checklist = score_draft(draft, expected)
-    slm_judge = judge_draft(draft, expected, trace_id=trace_id)
+    mode = eval_mode()
+    slm_judge: dict[str, Any] = {"enabled": False, "model": "", "error": None}
+    if mode in {"assist", "gate"} and eval_model_enabled():
+        slm_judge = judge_draft(draft, expected, trace_id=trace_id)
+
     source = "python"
     gate_passed = bool(checklist.passed)
     gate_details = checklist.details
 
-    if eval_model_enabled():
+    if mode == "gate" and eval_model_enabled():
         if slm_judge.get("error") or slm_judge.get("passed") is None:
             source = "python_fallback"
             slm_judge = {
@@ -42,26 +59,32 @@ def evaluate_draft(
             rationale = slm_judge.get("rationale") or ""
             gate_details = (
                 f"SLM({slm_judge.get('model')}): "
-                f"passed={gate_passed}; missing={miss}; forbidden={forbid}"
+                f"passed={gate_passed}; rules={slm_judge.get('rules_passed')}; "
+                f"soft={slm_judge.get('soft_ok')}; missing={miss}; forbidden={forbid}"
                 + (f"; {rationale}" if rationale else "")
             )
-            # Prefer concrete Python phrase lists for heal when available;
-            # otherwise carry SLM lists so heal has something actionable.
-            if not gate_passed and not checklist.missing and not checklist.forbidden_hits:
-                checklist = ChecklistResult(
-                    passed=False,
-                    action_ok=bool(slm_judge.get("action_ok", False)),
-                    missing=[str(x) for x in miss],
-                    forbidden_hits=[str(x) for x in forbid],
-                    detected_action=checklist.detected_action,
-                    score=0.0 if not gate_passed else checklist.score,
-                    details=gate_details,
-                )
+    elif mode == "assist" and slm_judge.get("enabled") and not slm_judge.get("error"):
+        source = "python+slm"
+        soft_ok = slm_judge.get("soft_ok")
+        agree = (
+            bool(slm_judge.get("rules_passed", slm_judge.get("passed")))
+            == bool(checklist.passed)
+        )
+        gate_details = (
+            f"{checklist.details} · SLM observe "
+            f"{'agree' if agree else 'differ'} · soft="
+            f"{'ok' if soft_ok else 'note'} ({slm_judge.get('model')})"
+        )
+        if slm_judge.get("action_intelligence"):
+            gate_details += f" · insight={slm_judge.get('action_intelligence')}"
+        # Advisory only: gate stays on Python. Insights flow to Reflect → learnings.
 
     return {
         "checklist": checklist,
         "slm_judge": slm_judge,
         "passed": gate_passed,
         "eval_source": source,
+        "eval_mode": mode,
         "details": gate_details,
+        "soft_heal": False,
     }

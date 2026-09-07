@@ -154,14 +154,21 @@ python -m pip install -c requirements-lock.txt -e ".[tracing]"
 
 See [optional Langfuse setup](LANGFUSE_DOCKER.md) only after the main route works.
 
-## Optional: tiny SLM as the eval layer
+## Optional: tiny SLM as the eval observer
 
-When `PARCELCO_EVAL_MODEL` is set, evaluation is **SLM-gated**: the model applies
-the same `expected/*.json` rules (action, must-include, must-not). Heal/PASS follow
-that verdict. The Python checklist still runs for evidence and concrete heal
-briefs, and is the fallback if the SLM errors or returns unparseable JSON.
+When `PARCELCO_EVAL_MODEL` is set, the eval SLM runs alongside the Python checklist.
 
-Leave `PARCELCO_EVAL_MODEL` empty for checklist-only evaluation.
+- `PARCELCO_EVAL_MODE=assist` (default): **Python** is the heal/PASS gate. The SLM
+  is advisory (Langfuse scores + insights). It does **not** soft-heal or override
+  ACTION mid-ticket. After heals/fails, **Reflect** turns useful SLM signals into
+  durable bullets in `learnings.md` — that is the self-improving loop.
+- `PARCELCO_EVAL_MODE=gate`: SLM overall verdict drives PASS/heal (Python fallback
+  on judge errors). Use sparingly; demo default is assist.
+
+Labels may set `acceptable_actions` (e.g. A20 refund|inform). FAQs stay retrieval
+knowledge for the worker — not the learning memory.
+
+`PARCELCO_MAX_HEAL` (default **4**) caps inner retries per ticket.
 
 ```bash
 # ~1 GB — Q4_K_M into LM Studio's models folder

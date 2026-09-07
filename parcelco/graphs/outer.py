@@ -284,19 +284,45 @@ def _template_lesson(
     forbidden: list[str],
     detected0: str | None,
     passed: bool,
+    slm_judge: dict | None = None,
+    allowed_actions: list[str] | None = None,
 ) -> str:
-    """Deterministic policy lessons — no LLM (demo-safe, no invented jargon)."""
+    """Deterministic policy lessons — SLM signals become durable learnings (loop)."""
     bullets: list[str] = []
     det = (detected0 or "").lower() or None
     want = expected_action.lower()
+    allowed = [a.lower() for a in (allowed_actions or [want]) if str(a).strip()]
+    if want not in allowed:
+        allowed = [want, *allowed]
+    slm = slm_judge if isinstance(slm_judge, dict) and slm_judge.get("enabled") else None
+    insight = (slm or {}).get("action_intelligence")
+    options_lesson = (
+        insight == "inform_options"
+        or (det == "inform" and "option" in ((slm or {}).get("rationale") or "").lower())
+        or (det == "inform" and "inform" in allowed and len(allowed) > 1)
+    )
 
-    if det != want:
+    if options_lesson:
         bullets.append(
-            f"- End every reply with a single line `ACTION: {want}` "
-            f"(do not use {det or 'a missing ACTION tag'} for this case)."
+            "- When the customer asks for options (or you list ≥2 concrete choices), "
+            "`ACTION: inform` is valid; still cite required policy phrases "
+            '(e.g. "30-day" when refunds are among the options). '
+            f"Preferred disposition for this case may still be `{want}`."
+        )
+    elif det and det in allowed and len(allowed) > 1:
+        bullets.append(
+            f"- Allowed ACTION tags for this policy case: {', '.join(allowed)} "
+            f"(preferred `{want}`)."
+        )
+    elif det != want:
+        bullets.append(
+            f"- When this ticket’s correct policy action is `{want}`, end with a single line "
+            f"`ACTION: {want}` (do not use `{det or 'a missing ACTION tag'}` for that case)."
         )
     else:
-        bullets.append(f"- End every reply with a single line `ACTION: {want}`.")
+        bullets.append(
+            f"- When the correct policy action is `{want}`, end with a single line `ACTION: {want}`."
+        )
 
     for m in missing:
         bullets.append(_phrase_lesson(m))
@@ -305,8 +331,7 @@ def _template_lesson(
         bullets.append(f'- Do not say "{f}" in the customer reply.')
 
     if want == "deny" and not any(m.lower() == "30-day" for m in missing):
-        # Still reinforce deny wording when action was wrong even if phrase eventually present
-        if det and det != "deny":
+        if det and det != "deny" and not options_lesson:
             bullets.append(
                 '- For refunds past the window: politely deny and cite the 30-day policy; '
                 "do not escalate unless the customer adds a legal/safety exception request."
@@ -324,6 +349,21 @@ def _template_lesson(
             "- Re-read retrieved policy/FAQ and mirror required wording before sending."
         )
 
+    # Fold SLM suggestion text only when it already looks like a standing rule.
+    if slm and not slm.get("error"):
+        for tip in slm.get("suggestions") or []:
+            tip_s = str(tip).strip()
+            low = tip_s.lower()
+            if not tip_s or len(tip_s) < 12:
+                continue
+            if any(
+                bad in low
+                for bad in ("heal", "checklist", "please provide", "we will review")
+            ):
+                continue
+            if tip_s.startswith(("-", "When", "Always", "Do not", "For ")):
+                bullets.append(f"- {tip_s.lstrip('- ').strip()[:200]}")
+
     # Dedupe while preserving order
     out: list[str] = []
     seen: set[str] = set()
@@ -334,9 +374,28 @@ def _template_lesson(
     return "\n".join(out)
 
 
+def _slm_for_reflect(result: TicketRunResult) -> dict:
+    """Prefer SLM signals from the first failed attempt (what we learn from)."""
+    for a in result.attempts or []:
+        if not isinstance(a, dict) or a.get("passed"):
+            continue
+        sj = a.get("slm_judge")
+        if isinstance(sj, dict) and sj.get("enabled"):
+            return sj
+    return getattr(result, "slm_judge", None) or {}
+
+
 def _lesson_from_single(result: TicketRunResult) -> str:
-    """Durable lessons from one learn-set ticket — templates only (demo-safe)."""
+    """Durable lessons from one learn-set ticket — templates + SLM loop insights."""
     expected, missing, forbidden, detected0 = _collect_signals(result)
+    allowed = None
+    try:
+        from parcelco.data_io import load_expected
+        from parcelco.eval.checklist import allowed_actions as _allowed
+
+        allowed = _allowed(load_expected(result.ticket_id))
+    except Exception:
+        allowed = [expected]
 
     # Mechanical: only missing ACTION tag
     if (
@@ -361,6 +420,8 @@ def _lesson_from_single(result: TicketRunResult) -> str:
         forbidden=forbidden,
         detected0=detected0,
         passed=result.passed,
+        slm_judge=_slm_for_reflect(result),
+        allowed_actions=allowed,
     )
 
 

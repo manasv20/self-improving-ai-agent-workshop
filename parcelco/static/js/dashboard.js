@@ -675,14 +675,15 @@
           : `FAIL final — ${details || "max heals"}`.slice(0, 160);
       if (judge && judge.enabled) {
         if (judge.error) evalLine += ` · SLM error: ${judge.error}`;
-        else if (judge.passed == null) evalLine += " · SLM: no verdict";
+        else if (judge.passed == null && judge.rules_passed == null) evalLine += " · SLM: no verdict";
         else {
-          const gate = source === "slm" ? "gate" : "ref";
-          evalLine += ` · SLM ${judge.passed ? "PASS" : "FAIL"} (${gate})`;
-          if (judge.rationale) evalLine += ` · ${String(judge.rationale).slice(0, 60)}`;
+          const soft = judge.soft_ok === false ? "soft·note" : judge.soft_ok === true ? "soft·ok" : "soft?";
+          const rules = judge.rules_passed == null ? "" : judge.rules_passed ? "rules✓" : "rules✗";
+          evalLine += ` · SLM ${rules} ${soft}`.trim();
+          if (judge.action_intelligence) evalLine += ` · ${judge.action_intelligence}`;
         }
       }
-      setNodeBody("evaluate", evalLine.slice(0, 220));
+      setNodeBody("evaluate", evalLine.slice(0, 240));
       el("result-line").textContent = willHeal
         ? `${ev.ticket_id}: FAIL — healing…`
         : `${ev.ticket_id}: ${ev.passed ? "PASS" : "FAIL"}`;
@@ -701,7 +702,7 @@
         setNodeBody("heal", "Queued — prior draft + missing phrases → Generate");
       } else if (!ev.passed) {
         setHealingPulse(false);
-        setNodeBody("heal", "Stopped after max heals (2) — Reflect next");
+        setNodeBody("heal", "Stopped after max heals — Reflect next");
       } else {
         setHealingPulse(false);
         setNodeBody("heal", "Not needed — checklist passed");

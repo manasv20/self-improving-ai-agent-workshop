@@ -22,6 +22,12 @@ class Expected(BaseModel):
     must_include_any: list[list[str]] = Field(default_factory=list)
     must_not: list[str] = Field(default_factory=list)
     action: Literal["refund", "deny", "escalate", "inform"] = "inform"
+    # When set, any of these ACTION tags pass (primary `action` is always included).
+    # Use for tickets like "what are my options?" where inform listing choices is valid
+    # even if the preferred disposition is refund/deny/escalate.
+    acceptable_actions: list[Literal["refund", "deny", "escalate", "inform"]] = Field(
+        default_factory=list
+    )
     notes: str = ""
     # Optional tag for UI / suite filters
     difficulty: Literal["easy", "ambiguous", "adversarial"] = "easy"

@@ -5,5 +5,7 @@
   ],
   "must_not": [],
   "action": "refund",
-  "notes": "3 weeks damaged"
+  "acceptable_actions": ["refund", "inform"],
+  "notes": "3 weeks damaged — customer asked for options; listing choices with ACTION: inform is valid (refund also OK)",
+  "difficulty": "ambiguous"
 }
