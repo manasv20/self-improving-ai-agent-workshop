@@ -1080,6 +1080,8 @@ tr.row-reverted { opacity: 0.7; }
   text-overflow: ellipsis;
 }
 .strip-expect strong { color: var(--accent); text-transform: uppercase; }
+.reveal-expect { padding: 0.2rem 0.45rem; font-size: 0.7rem; }
+#expected-details[hidden] { display: none; }
 .strip-notes { color: var(--muted); font-size: 0.7rem; }
 .live-stage {
   flex: 1 1 auto;
@@ -1218,6 +1220,9 @@ tr.row-reverted { opacity: 0.7; }
 }
 .stage-reflect.kept {
   border-color: color-mix(in srgb, var(--good) 45%, var(--line));
+}
+.stage-reflect.blocked {
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--line));
 }
 .stage-reflect.writing .reflect-draft::after {
   content: "▋";

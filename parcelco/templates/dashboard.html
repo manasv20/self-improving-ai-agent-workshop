@@ -32,7 +32,7 @@
     <div class="guide-now">
       <span class="guide-label">Do this next</span>
       <strong id="guide-title">① Click a ticket on the left</strong>
-      <p id="guide-body">Then press Run. Watch each node update live — checklist grades; Reflect writes lessons on learn-set.</p>
+      <p id="guide-body">Then press Run. Watch each node update live — checklist grades; Reflect may write a lesson on learn-set.</p>
     </div>
     <div class="guide-legend">
       <span class="leg llm">Orange = LLM</span>
@@ -66,14 +66,17 @@
             <button id="btn-run" class="btn primary" disabled>② Run this ticket</button>
           </div>
         </div>
-        <p id="stack-detail" class="now-line">Waiting — pick a ticket, then Run. Reflect learns automatically on learn-set tickets.</p>
+        <p id="stack-detail" class="now-line">Waiting — pick a ticket, then Run. Reflect can learn from corrected learn-set runs.</p>
       </div>
 
       <div class="ticket-strip" id="ticket-strip">
         <code id="sel-id">—</code>
         <span id="sel-meta" class="meta"></span>
-        <span class="strip-expect">Expect <strong id="sel-action">—</strong></span>
-        <span id="sel-notes" class="strip-notes">—</span>
+        <button id="btn-reveal-expect" type="button" class="btn ghost reveal-expect" aria-expanded="false" disabled>Reveal expected result</button>
+        <span id="expected-details" hidden>
+          <span class="strip-expect">Expect <strong id="sel-action">—</strong></span>
+          <span id="sel-notes" class="strip-notes">—</span>
+        </span>
         <p id="sel-message" class="message">Select a ticket.</p>
       </div>
 
@@ -135,7 +138,7 @@
           <pre id="llm-draft" class="llm-draft">Customer-facing draft shows here.</pre>
           <div id="lf-evidence" class="lf-evidence">
             <strong>LangFuse</strong>
-            <p id="lf-evidence-detail">After a run: generations counted, checklist scores written, heal verified against the trace.</p>
+            <p id="lf-evidence-detail">Optional tracing status for this ticket appears after the run.</p>
             <p id="lf-inspector-link-wrap" class="lf-link" hidden>
               <a id="lf-inspector-link" href="#" target="_blank" rel="noopener">Open trace ↗</a>
             </p>
@@ -149,7 +152,7 @@
 
       <details class="more-inline">
         <summary>Optional · suite proof (Score / Learn / Reset)</summary>
-        <p class="more-help">Not needed for the live demo — Run already Reflects per learn-set ticket. Use these only to measure lift across many tickets.</p>
+        <p class="more-help">Not needed for the live demo — Run can Reflect after a learn-set miss or heal. Use these only to measure lift across many tickets.</p>
         <div class="action-group suite-actions">
           <button id="btn-baseline" class="btn ghost">Score suite</button>
           <button id="btn-improve" class="btn ghost">Learn + keep/revert</button>
@@ -272,6 +275,7 @@
   <span id="ticket" hidden>—</span>
   <span id="status" hidden>idle</span>
 
+  <script src="{{ url_for('static', filename='js/dashboard_contract.js') }}"></script>
   <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 </body>
 </html>

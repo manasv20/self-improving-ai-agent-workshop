@@ -502,6 +502,11 @@ def reflect_after_ticket(ticket, result: TicketRunResult) -> dict:
     from parcelco.tracing import annotate_lesson_on_trace
 
     annotate_lesson_on_trace(result.trace_id, lesson, kept=True)
+    trace_available = bool(
+        result.trace_id
+        and (result.langfuse_evidence or {}).get("enabled")
+        and not (result.langfuse_evidence or {}).get("error")
+    )
 
     # Snippet of what landed in the file (for live panel)
     file_snippet = f"## {heading}\n{lesson}"
@@ -510,7 +515,10 @@ def reflect_after_ticket(ticket, result: TicketRunResult) -> dict:
         {
             "type": "gate",
             "stack": "autonomous",
-            "stack_detail": "KEEP — lesson → learnings.md + LangFuse trace",
+            "stack_detail": (
+                "KEEP — lesson → learnings.md"
+                + (" · LangFuse trace available" if trace_available else " · no trace annotation")
+            ),
             "kept": True,
             "ticket_id": tid,
             "node": "reflect",

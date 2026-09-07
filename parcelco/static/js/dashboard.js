@@ -6,6 +6,7 @@
     return `${x > 0 ? "+" : ""}${pp}pp`;
   };
   const el = (id) => document.getElementById(id);
+  const contract = window.ParcelCoDashboardContract;
 
   const state = {
     tickets: [],
@@ -16,6 +17,9 @@
     history: [],
     events: [],
     busy: false,
+    langfuseOn: false,
+    ticketLoadSeq: 0,
+    selectionSeq: 0,
     seenNodes: new Set(),
   };
 
@@ -64,11 +68,7 @@
       ],
       learn: [
         "④ Suite proof — Score / batch Learn",
-        "Big suite (700+300) measures lift. Per-ticket Reflect already learns on learn-set runs.",
-      ],
-      done: [
-        "Done — lesson is in the Reflect panel",
-        "Read the live lesson on the right. It was also appended to learnings.md and scored on the LangFuse trace.",
+        "Big suite (700+300) measures lift. Per-ticket Reflect may learn after a learn-set miss or heal.",
       ],
     };
     const [title, body] = copy[step] || copy.pick;
@@ -114,6 +114,9 @@
         draft: "draft ready",
         kept: "kept → learnings.md",
         blocked: "blocked",
+        rejected: "not written",
+        holdout: "skipped (holdout)",
+        clean_pass: "nothing to learn",
         empty: "nothing to learn",
       };
       phaseEl.textContent = labels[phase] || phase || "live";
@@ -121,6 +124,7 @@
     if (stage) {
       stage.classList.toggle("writing", phase === "start" || phase === "draft");
       stage.classList.toggle("kept", phase === "kept");
+      stage.classList.toggle("blocked", phase === "blocked" || phase === "rejected");
     }
     if (box && text != null) {
       box.textContent = text || (phase === "start" ? "Drafting lesson from checklist…" : box.textContent);
@@ -135,18 +139,89 @@
     /* live-stage is always visible */
   }
 
+  function setExpectedVisibility(show) {
+    const details = el("expected-details");
+    const button = el("btn-reveal-expect");
+    if (details) details.hidden = !show;
+    if (button) {
+      button.textContent = show ? "Hide expected result" : "Reveal expected result";
+      button.setAttribute("aria-expanded", show ? "true" : "false");
+    }
+  }
+
+  function resetReflectStage() {
+    const stage = el("stage-reflect");
+    if (stage) stage.classList.remove("writing", "kept", "blocked");
+    const phase = el("reflect-phase");
+    if (phase) phase.textContent = "waiting";
+    const lesson = el("reflect-lesson");
+    if (lesson) lesson.textContent = "No Reflect result yet for this ticket.";
+  }
+
+  function resetLangfuseEvidence() {
+    const box = el("lf-evidence");
+    const detail = el("lf-evidence-detail");
+    if (box) box.classList.remove("ok", "bad");
+    if (detail) {
+      detail.textContent = state.langfuseOn
+        ? "No trace result yet for this ticket."
+        : "LangFuse is off — runs use checklist-only verification and write no trace.";
+    }
+    setInspectorLink(null);
+  }
+
+  function resetTicketRunUi() {
+    setExpectedVisibility(false);
+    el("result-line").textContent = "Ready — press ② Run.";
+    el("result-line").className = "result-line";
+    el("llm-draft").textContent = "Run the loop to see Qwen’s reply here.";
+    el("inspector").textContent = "JSON after a run.";
+    renderHealTimeline([]);
+    setHealingPulse(false);
+    resetReflectStage();
+    resetLangfuseEvidence();
+    state.seenNodes = new Set();
+    document.querySelectorAll(".node").forEach((node) => node.classList.remove("active", "done"));
+    setNodeBody("retrieve", "Idle — waiting to pull context.");
+    setNodeBody("generate", "Idle — will draft from prompt + lessons + RAG.");
+    setNodeBody("evaluate", "Idle — will PASS/FAIL with reasons.");
+    setNodeBody("heal", "Idle — only runs if checklist fails.");
+    setNodeBody("reflect", "Idle — skipped on holdout / clean first-try PASS.");
+  }
+
+  function clearSelectedTicket() {
+    state.ticketLoadSeq += 1;
+    state.selectionSeq += 1;
+    state.selectedId = null;
+    state.selected = null;
+    el("sel-id").textContent = "—";
+    el("sel-meta").textContent = "";
+    el("sel-message").textContent = "Select a ticket.";
+    el("sel-action").textContent = "—";
+    el("sel-notes").textContent = "—";
+    el("ticket").textContent = "—";
+    el("btn-reveal-expect").disabled = true;
+    resetTicketRunUi();
+    setBusy(state.busy, state.busy ? "busy" : "idle");
+    renderTicketList();
+  }
+
   async function loadTickets() {
+    const requestSeq = ++state.ticketLoadSeq;
     const params = new URLSearchParams();
     if (state.split) params.set("split", state.split);
     if (state.query) params.set("q", state.query);
     const data = await (await fetch(`/api/tickets?${params}`)).json();
+    if (requestSeq !== state.ticketLoadSeq) return;
     state.tickets = data.tickets || [];
     syncSuiteChips(data.suite);
     if (!data.suite) {
       el("ticket-count").textContent = String(data.count || 0);
     }
+    const nextId = contract.selectedIdInTickets(state.tickets, state.selectedId);
+    if (nextId !== state.selectedId) clearSelectedTicket();
     renderTicketList();
-    if (!state.selectedId && state.tickets.length) selectTicket(state.tickets[0].id);
+    if (nextId && nextId !== state.selectedId) await selectTicket(nextId);
   }
 
   function syncSuiteChips(suite) {
@@ -169,6 +244,7 @@
   }
 
   async function setSuiteMode(mode) {
+    clearSelectedTicket();
     const res = await fetch("/api/suite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -177,7 +253,6 @@
     if (!res.ok) return;
     const data = await res.json();
     syncSuiteChips(data.suite);
-    state.selectedId = null;
     await loadTickets();
     el("stack-detail").textContent =
       mode === "full"
@@ -206,34 +281,31 @@
   }
 
   async function selectTicket(id) {
+    const selectionSeq = ++state.selectionSeq;
     state.selectedId = id;
     setTeach("pick");
     renderTicketList();
     el("btn-run").disabled = state.busy || !id;
+    el("btn-reveal-expect").disabled = true;
+    resetTicketRunUi();
     const res = await fetch(`/api/tickets/${encodeURIComponent(id)}`);
-    if (!res.ok) return;
+    if (selectionSeq !== state.selectionSeq) return;
+    if (!res.ok) {
+      clearSelectedTicket();
+      return;
+    }
     const data = await res.json();
+    if (selectionSeq !== state.selectionSeq || state.selectedId !== id) return;
     state.selected = data;
     const t = data.ticket;
     const e = data.expected || {};
     el("sel-id").textContent = t.id;
-    el("sel-meta").textContent = `${t.split} · ${t.intent}${e.difficulty && e.difficulty !== "easy" ? ` · ${e.difficulty}` : ""}${e.action ? ` · want ${e.action}` : ""}`;
+    el("sel-meta").textContent = `${t.split} · ${t.intent}${e.difficulty && e.difficulty !== "easy" ? ` · ${e.difficulty}` : ""}`;
     el("sel-message").textContent = t.message;
     el("sel-action").textContent = e.action || "—";
     el("sel-notes").textContent = e.notes || "—";
     el("ticket").textContent = t.id;
-    el("result-line").textContent = "Ready — press ② Run.";
-    el("result-line").className = "result-line";
-    el("llm-draft").textContent = "Run the loop to see Qwen’s reply here.";
-    const rl = el("reflect-lesson");
-    if (rl) rl.textContent = "Autonomous lessons from learn-set tickets show here.";
-    renderHealTimeline([]);
-    setHealingPulse(false);
-    setNodeBody("retrieve", "Idle — waiting to pull context.");
-    setNodeBody("generate", "Idle — will draft from prompt + lessons + RAG.");
-    setNodeBody("evaluate", "Idle — will PASS/FAIL with reasons.");
-    setNodeBody("heal", "Idle — only runs if checklist fails.");
-    setNodeBody("reflect", "Idle — skipped on holdout / clean first-try PASS.");
+    el("btn-reveal-expect").disabled = false;
     setTeach("pick");
     setGuide(
       `① Selected ${t.id} — press Run`,
@@ -443,6 +515,7 @@
 
   function renderLangfuse(lf) {
     if (!lf) return;
+    state.langfuseOn = !!(lf.enabled && lf.auth_ok);
     const pill = el("lf-pill");
     if (pill) {
       const on = lf.enabled && lf.auth_ok;
@@ -452,6 +525,7 @@
     }
     const openBtn = el("btn-langfuse");
     if (openBtn && lf.ui_url) openBtn.href = lf.ui_url;
+    if (!state.busy && el("result-line").textContent.includes("Ready")) resetLangfuseEvidence();
   }
 
   function setInspectorLink(url) {
@@ -469,9 +543,13 @@
     const detail = el("lf-evidence-detail");
     if (!box || !detail) return;
     if (!ev || !Object.keys(ev).length) {
+      resetLangfuseEvidence();
+      return;
+    }
+    if (ev.enabled === false) {
       box.classList.remove("ok", "bad");
-      detail.textContent =
-        "After a run: generations counted, checklist scores written, heal verified against the trace.";
+      detail.textContent = ev.detail || "LangFuse off — checklist-only verification; no trace written.";
+      setInspectorLink(null);
       return;
     }
     const gens = ev.generation_count != null ? ev.generation_count : "?";
@@ -486,8 +564,45 @@
     if (ev.url) setInspectorLink(ev.url);
   }
 
+  function renderReflectOutcome(ev) {
+    const autonomous = (ev.inspector && ev.inspector.autonomous) || {};
+    const reason = ev.reflect_reason || autonomous.reason;
+    const lesson = (ev.inspector && ev.inspector.autonomous_lesson) || autonomous.lesson;
+    if (reason === "learned") {
+      showReflectLesson(lesson || "Lesson written to learnings.md.", "kept");
+      setNodeBody("reflect", "Lesson written → learnings.md");
+    } else if (reason === "holdout") {
+      showReflectLesson("Holdout ticket — Reflect skipped; learnings.md unchanged.", "holdout");
+      setNodeBody("reflect", "Skipped — holdout score only; memory unchanged");
+    } else if (reason === "clean_pass") {
+      showReflectLesson("Clean first-try PASS — no reusable correction to learn.", "clean_pass");
+      setNodeBody("reflect", "Nothing to learn — memory unchanged");
+    } else if (reason === "blocked") {
+      showReflectLesson(lesson || "Lesson blocked by the safety filter; learnings.md unchanged.", "blocked");
+      setNodeBody("reflect", "Blocked by safety filter — memory unchanged");
+    } else if (reason === "rejected") {
+      showReflectLesson("No safe reusable lesson was produced; learnings.md unchanged.", "rejected");
+      setNodeBody("reflect", "No safe lesson — memory unchanged");
+    }
+  }
+
+  function setCompletionGuide(ev) {
+    const copy = contract.completionCopy(ev);
+    setGuide(copy.title, copy.body);
+  }
+
   function applyEvent(ev) {
     if (!ev || ev.type === "ping") return;
+    const ticketScoped =
+      !!ev.ticket_id &&
+      (ev.type === "ticket_eval" ||
+        ev.type === "step" ||
+        (ev.type === "gate" && ev.stack === "autonomous") ||
+        ["demo", "demo_done", "reflect"].includes(ev.status));
+    if (ticketScoped && ev.ticket_id !== state.selectedId) {
+      if (ev.status === "demo_done" || ev.status === "error") setBusy(false, ev.status === "error" ? "error" : "idle");
+      return;
+    }
     if (ev.node) highlightNode(ev.node);
     if (ev.stack_detail) el("stack-detail").textContent = ev.stack_detail;
     if (ev.ticket_id) el("ticket").textContent = ev.ticket_id;
@@ -502,7 +617,7 @@
     if (ev.node === "reflect" || (ev.status && String(ev.status).includes("improve_round"))) {
       highlightNode("reflect");
       setNodeBody("reflect", ev.stack_detail || "Writing policy lessons into learnings.md…");
-      setTeach(ev.stack === "autonomous" ? "done" : "learn");
+      setTeach("learn");
       const ins = ev.inspector || {};
       if (ins.phase === "start") showReflectLesson("Drafting lesson from checklist signals…", "start");
       if (ins.lesson && (ins.phase === "draft" || ins.phase === "kept" || ins.phase === "blocked")) {
@@ -529,7 +644,7 @@
       }
     }
 
-    if (ev.inspector && ev.inspector.autonomous_lesson) {
+    if (ev.inspector && ev.inspector.autonomous_lesson && ev.reflect_reason === "learned") {
       showReflectLesson(ev.inspector.autonomous_lesson, "kept");
       setNodeBody("reflect", "Lesson written → learnings.md");
     }
@@ -619,7 +734,9 @@
     ) {
       setBusy(false, ev.status === "error" ? "error" : "idle");
       if (ev.status === "demo_done") {
-        setTeach("done");
+        setCompletionGuide(ev);
+        renderReflectOutcome(ev);
+        if (ev.ticket_id === state.selectedId) setExpectedVisibility(true);
         refreshLangfuse();
         if (ev.inspector && (ev.inspector.autonomous_lesson || ev.inspector.autonomous)) {
           loadKnowledge();
@@ -643,7 +760,7 @@
         renderBeforeAfter(null);
         renderJourney([]);
         renderActivity([]);
-        el("llm-draft").textContent = "Run the loop to see Qwen’s reply here.";
+        resetTicketRunUi();
         setTeach("pick");
       }
     }
@@ -706,20 +823,30 @@
       document.querySelectorAll("[data-split]").forEach((x) => x.classList.remove("active"));
       c.classList.add("active");
       state.split = c.dataset.split || "";
+      clearSelectedTicket();
       loadTickets();
     };
   });
   let searchTimer;
   el("ticket-search").oninput = (e) => {
     clearTimeout(searchTimer);
+    state.query = e.target.value.trim();
+    clearSelectedTicket();
     searchTimer = setTimeout(() => {
-      state.query = e.target.value.trim();
       loadTickets();
     }, 180);
   };
 
+  el("btn-reveal-expect").onclick = () => {
+    if (!state.selected) return;
+    setExpectedVisibility(el("expected-details").hidden);
+  };
+
   el("btn-run").onclick = () => {
-    if (!state.selectedId) return;
+    if (!contract.selectedIdInTickets(state.tickets, state.selectedId)) {
+      clearSelectedTicket();
+      return;
+    }
     setTeach("run");
     post("/api/run-ticket", { ticket_id: state.selectedId });
   };
